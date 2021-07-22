@@ -163,23 +163,24 @@ func TestStatus(t *testing.T) {
 	s := NewStatus()
 	check_eq(t, STATUS_SUCCESS, s.GetCode())
 	check_eq(t, "", s.GetMessage())
-	check_true(t, s.Is(s))
-	check_true(t, s.Is(*s))
-	check_true(t, s.Is(STATUS_SUCCESS))
-	check_false(t, s.Is(STATUS_NOT_FOUND_ERROR))
-	check_false(t, s.Is(100))
+	check_true(t, s.Equals(s))
+	check_true(t, s.Equals(*s))
+	check_true(t, s.Equals(STATUS_SUCCESS))
+	check_false(t, s.Equals(STATUS_NOT_FOUND_ERROR))
+	check_false(t, s.Equals(100))
 	check_eq(t, "SUCCESS", s)
 	check_true(t, s.IsOK())
+	s.OrDie()
 	s = NewStatus(STATUS_NOT_FOUND_ERROR, "foobar")
 	check_eq(t, STATUS_NOT_FOUND_ERROR, s.GetCode())
 	check_eq(t, "foobar", s.GetMessage())
 	check_eq(t, "NOT_FOUND_ERROR: foobar", s)
-	check_true(t, s.Is(s))
-	check_true(t, s.Is(*s))
-	check_true(t, s.Is(STATUS_NOT_FOUND_ERROR))
-	check_false(t, s.Is(STATUS_SUCCESS))
+	check_true(t, s.Equals(s))
+	check_true(t, s.Equals(*s))
+	check_true(t, s.Equals(STATUS_NOT_FOUND_ERROR))
+	check_false(t, s.Equals(STATUS_SUCCESS))
 	check_false(t, s.IsOK())
-	check_false(t, s.Is(100))
+	check_false(t, s.Equals(100))
 	s = NewStatus1(STATUS_SUCCESS)
 	check_eq(t, STATUS_SUCCESS, s.GetCode())
 	check_eq(t, "", s.GetMessage())
@@ -187,3 +188,58 @@ func TestStatus(t *testing.T) {
 	check_eq(t, STATUS_NOT_FOUND_ERROR, s.GetCode())
 	check_eq(t, "bazquux", s.GetMessage())
 }
+
+func TestVersion(t *testing.T) {
+	check_true(t, len(VERSION) > 3)
+}
+
+func TestDBMBasic(t *testing.T) {
+	dbm := NewDBM()
+	status := dbm.Open("casket.tkh", true, "truncate=true")
+	check_true(t, status.Equals(STATUS_SUCCESS))
+	check_eq(t, "#<tkrzw.DBM:casket.tkh:0>", dbm.String())
+	check_true(t, dbm.Set("one", "first", false).IsOK())
+	check_true(t, dbm.Set("one", "uno", false).Equals(STATUS_DUPLICATION_ERROR))
+	check_true(t, dbm.Set("two", "second", false).IsOK())
+	check_true(t, dbm.Set("three", "third", false).IsOK())
+	check_true(t, dbm.Append("three", "3", ":").IsOK())
+	count, status := dbm.Count()
+	check_true(t, status.Equals(STATUS_SUCCESS))
+	check_eq(t, 3, count)
+	check_eq(t, 3,dbm.CountSimple())
+	value, status := dbm.Get("one")
+	check_true(t, status.Equals(STATUS_SUCCESS))
+	check_eq(t, "first", value)
+	value, status = dbm.Get([]byte("two"))
+	check_true(t, status.Equals(STATUS_SUCCESS))
+	check_eq(t, "second", value)
+	value_str, status := dbm.GetStr([]byte("three"))
+	check_true(t, status.Equals(STATUS_SUCCESS))
+	check_eq(t, "third:3", value_str)
+	value_str, status = dbm.GetStr([]byte("fourth"))
+	check_true(t, status.Equals(STATUS_NOT_FOUND_ERROR))
+	check_eq(t, "", value_str)
+	check_eq(t, "first", dbm.GetSimple("one", "*"))
+	check_eq(t, "second", dbm.GetStrSimple("two", "*"))
+	check_eq(t, "third:3", dbm.GetStrSimple([]byte("three"), "*"))
+	check_eq(t, "*", dbm.GetStrSimple([]byte("four"), "*"))
+	check_true(t, dbm.Remove("one").Equals(STATUS_SUCCESS))
+	check_true(t, dbm.Remove("two").Equals(STATUS_SUCCESS))
+	check_true(t, dbm.Remove([]byte("three")).Equals(STATUS_SUCCESS))
+	check_true(t, dbm.Remove([]byte("fourth")).Equals(STATUS_NOT_FOUND_ERROR))
+
+
+
+	
+
+	fmt.Println(dbm)
+
+/*
+	fmt.Println("hello")
+	fmt.Println(dbm.String(), status)
+
+	status = dbm.Close()
+	fmt.Println(status)
+*/
+}
+

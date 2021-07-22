@@ -205,9 +205,6 @@ func dbm_open(path string, writable bool, params string) (uintptr, *Status) {
 }
 
 func dbm_close(dbm uintptr) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_close(xdbm)
 	status := convert_status(res)
@@ -215,9 +212,6 @@ func dbm_close(dbm uintptr) *Status {
 }
 
 func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
-	if dbm == 0 || key == nil {
-		return nil, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
@@ -232,9 +226,6 @@ func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
 }
 
 func dbm_set(dbm uintptr, key []byte, value []byte, overwrite bool) *Status {
-	if dbm == 0 || key == nil || value == nil {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
@@ -247,9 +238,6 @@ func dbm_set(dbm uintptr, key []byte, value []byte, overwrite bool) *Status {
 }
 
 func dbm_remove(dbm uintptr, key []byte) *Status {
-	if dbm == 0 || key == nil {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
@@ -259,9 +247,6 @@ func dbm_remove(dbm uintptr, key []byte) *Status {
 }
 
 func dbm_append(dbm uintptr, key []byte, value []byte, delim []byte) *Status {
-	if dbm == 0 || key == nil || value == nil || delim == nil {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
@@ -276,9 +261,6 @@ func dbm_append(dbm uintptr, key []byte, value []byte, delim []byte) *Status {
 }
 
 func dbm_count(dbm uintptr) (int64, *Status) {
-	if dbm == 0 {
-		return -1, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_count(xdbm)
 	status := convert_status(res.status)
@@ -286,9 +268,6 @@ func dbm_count(dbm uintptr) (int64, *Status) {
 }
 
 func dbm_get_file_size(dbm uintptr) (int64, *Status) {
-	if dbm == 0 {
-		return -1, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_get_file_size(xdbm)
 	status := convert_status(res.status)
@@ -296,9 +275,6 @@ func dbm_get_file_size(dbm uintptr) (int64, *Status) {
 }
 
 func dbm_get_file_path(dbm uintptr) (string, *Status) {
-	if dbm == 0 {
-		return "", NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_get_file_path(xdbm)
 	var path string
@@ -311,9 +287,6 @@ func dbm_get_file_path(dbm uintptr) (string, *Status) {
 }
 
 func dbm_clear(dbm uintptr) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_clear(xdbm)
 	status := convert_status(res)
@@ -321,9 +294,6 @@ func dbm_clear(dbm uintptr) *Status {
 }
 
 func dbm_rebuild(dbm uintptr, params string) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xparams := C.CString(params)
 	defer C.free(unsafe.Pointer(xparams))
@@ -333,9 +303,6 @@ func dbm_rebuild(dbm uintptr, params string) *Status {
 }
 
 func dbm_should_be_rebuilt(dbm uintptr) (bool, *Status) {
-	if dbm == 0 {
-		return false, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_should_be_rebuilt(xdbm)
 	status := convert_status(res.status)
@@ -343,9 +310,6 @@ func dbm_should_be_rebuilt(dbm uintptr) (bool, *Status) {
 }
 
 func dbm_synchronize(dbm uintptr, hard bool, params string) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
-	}
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xparams := C.CString(params)
 	defer C.free(unsafe.Pointer(xparams))
