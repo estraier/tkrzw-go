@@ -1,3 +1,16 @@
+/*************************************************************************************************
+ * Database manager interface
+ *
+ * Copyright 2020 Google LLC
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied.  See the License for the specific language governing permissions
+ * and limitations under the License.
+ *************************************************************************************************/
+
 package tkrzw
 
 import (
@@ -8,6 +21,7 @@ import (
 //
 // All operations except for open and close are thread-safe; Multiple threads can access the same database concurrently.  You can specify a data structure when you call the "Open" method.  Every opened database must be closed explicitly by the "Close" method to avoid data corruption.
 type DBM struct {
+	// Pointer to the internal object.
 	dbm uintptr
 }
 
@@ -528,6 +542,15 @@ func (self *DBM) IsOrdered() bool {
 		return false
 	}
 	return dbm_is_ordered(self.dbm)
+}
+
+// Makes an iterator for each record.
+//
+// @return The iterator for each record.
+//
+// Every iterator should be destructed explicitly by the "Destruct" method.
+func (self *DBM) MakeIterator() *Iterator {
+	return nil
 }
 
 // END OF FILE
