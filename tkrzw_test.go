@@ -259,11 +259,15 @@ func TestDBMBasic(t *testing.T) {
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckEq(t, 105, inc_value)
 	CheckTrue(t, dbm.Remove("num").Equals(StatusSuccess))
-	
-
-
-
-	
+  records := map[string]string{"one": "first", "two": "second"}
+	CheckTrue(t, dbm.Set("one", "first", false).IsOK())
+	CheckTrue(t, dbm.Set("two", "second", false).IsOK())
+	keys := []string{"one", "two", "three"}
+	records = dbm.GetMultiStr(keys)
+	CheckEq(t, 2, len(records))
+	CheckEq(t, "first", records["one"])
+	CheckEq(t, "second", records["two"])
+	CheckTrue(t, dbm.RemoveMulti(keys).Equals(StatusNotFoundError))
 	CheckEq(t, 0, dbm.CountSimple())
 	fileSize, status := dbm.GetFileSize()
 	CheckTrue(t, status.Equals(StatusSuccess))
@@ -288,7 +292,6 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, 0, dbm.CountSimple())
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 	CheckTrue(t, dbm.Open(copyPath, true, "").Equals(StatusSuccess))
-
 	copyDbm := NewDBM()
 	CheckTrue(t, copyDbm.Open(copyPath, false, "").Equals(StatusSuccess))
 	CheckEq(t, 10, copyDbm.CountSimple())

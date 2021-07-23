@@ -187,6 +187,30 @@ func (self *DBM) GetStrSimple(key interface{}, defaultValue interface{}) string 
 	return ToString(defaultValue)
 }
 
+// Gets the values of multiple records of keys.
+//
+// @param keys The keys of records to retrieve.
+// @return A map of retrieved records.  Keys which don't match existing records are ignored.
+func (self *DBM) GetMulti(keys []string) map[string][]byte {
+	if self.dbm == 0 {
+		return make(map[string][]byte)
+	}
+	return dbm_get_multi(self.dbm, keys)
+}
+
+// Gets the values of multiple records of keys, as strings.
+//
+// @param keys The keys of records to retrieve.
+// @eturn A map of retrieved records.  Keys which don't match existing records are ignored.
+func (self *DBM) GetMultiStr(keys []string) map[string]string {
+	records := dbm_get_multi(self.dbm, keys)
+	strRecords := make(map[string]string)
+	for key, value := range records {
+		strRecords[key] = ToString(value)
+	}
+	return strRecords
+}
+
 // Sets a record of a key and a value.
 //
 // @param key The key of the record.
@@ -200,6 +224,34 @@ func (self *DBM) Set(key interface{}, value interface{}, overwrite bool) *Status
 	return dbm_set(self.dbm, ToByteArray(key), ToByteArray(value), overwrite)
 }
 
+// Sets multiple records of the keyword arguments.
+//
+// @param records Records to store.
+// @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+// @return The result status.
+func (self *DBM) SetMulti(records map[string][]byte, overwrite bool) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_set_multi(self.dbm, records, overwrite)
+}
+
+// Sets multiple records of the keyword arguments, with string data
+//
+// @param records Records to store.
+// @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+// @return The result status.
+func (self *DBM) SetMultiStr(records map[string]string, overwrite bool) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	rawRecords := make(map[string][]byte)
+	for key, value := range records {
+		rawRecords[key] = []byte(value)
+	}
+	return dbm_set_multi(self.dbm, rawRecords, overwrite)
+}
+
 // Removes a record of a key.
 //
 // @param key The key of the record.
@@ -209,6 +261,17 @@ func (self *DBM) Remove(key interface{}) *Status {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_remove(self.dbm, ToByteArray(key))
+}
+
+// Removes records of keys.
+//
+// @param key The keys of the records.
+// @return:The result status.  If there are missing records, NOT_FOUND_ERROR is returned.
+func (self *DBM) RemoveMulti(keys []string) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_remove_multi(self.dbm, keys)
 }
 
 // Appends data at the end of a record of a key.

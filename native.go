@@ -95,9 +95,28 @@ RES_STATUS do_dbm_set(
   return res;
 }
 
+RES_STATUS do_dbm_set_multi(
+    TkrzwDBM* dbm, const TkrzwKeyValuePair* records, int32_t num_records, bool overwrite) {
+  RES_STATUS res;
+  tkrzw_dbm_set_multi(dbm, records, num_records, overwrite);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_STATUS do_dbm_remove(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
   RES_STATUS res;
   tkrzw_dbm_remove(dbm, key_ptr, key_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_remove_multi(TkrzwDBM* dbm, const TkrzwStr* keys, int32_t num_keys) {
+  RES_STATUS res;
+  tkrzw_dbm_remove_multi(dbm, keys, num_keys);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
@@ -277,6 +296,34 @@ func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
 	return value, status
 }
 
+func dbm_get_multi(dbm uintptr, keys []string) (map[string][]byte) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
+	xkeys := (*C.TkrzwStr)(unsafe.Pointer(C.malloc(C.size_t(xkeys_size + 1))))
+	defer C.tkrzw_free_str_array(xkeys, C.int32_t(len(keys)))
+	xkey_ptr := uintptr(unsafe.Pointer(xkeys))
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		xkey := (*C.TkrzwStr)(unsafe.Pointer(xkey_ptr))
+		xkey.ptr = C.CString(key)
+		xkey.size = C.int32_t(len(key))
+		xkey_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	var num_records C.int32_t
+	xrecords := C.tkrzw_dbm_get_multi(xdbm, xkeys, C.int32_t(len(keys)), &num_records)
+	defer C.tkrzw_free_str_map(xrecords, num_records)
+	records := make(map[string][]byte)
+	rec_ptr := uintptr(unsafe.Pointer(xrecords))
+	for i := C.int32_t(0); i < num_records; i++ {
+		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
+		key := C.GoStringN(elem.key_ptr, elem.key_size)
+		value := C.GoBytes(unsafe.Pointer(elem.value_ptr), elem.value_size)
+		records[key] = value
+		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	return records
+}
+
 func dbm_set(dbm uintptr, key []byte, value []byte, overwrite bool) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
@@ -289,11 +336,48 @@ func dbm_set(dbm uintptr, key []byte, value []byte, overwrite bool) *Status {
 	return status
 }
 
+func dbm_set_multi(dbm uintptr, records map[string][]byte, overwrite bool) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
+	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
+	for key, value := range records {
+		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
+		xrec.key_ptr = C.CString(key)
+		xrec.key_size = C.int32_t(len(key))
+		xrec.value_ptr = (*C.char)(C.CBytes(value))
+		xrec.value_size = C.int32_t(len(value))
+		xrec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	res := C.do_dbm_set_multi(xdbm, xrecs, C.int32_t(len(records)), C.bool(overwrite))
+	status := convert_status(res)
+	return status
+}
+
 func dbm_remove(dbm uintptr, key []byte) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
 	res := C.do_dbm_remove(xdbm, xkey_ptr, C.int32_t(len(key)))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_remove_multi(dbm uintptr, keys []string) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
+	xkeys := (*C.TkrzwStr)(unsafe.Pointer(C.malloc(C.size_t(xkeys_size + 1))))
+	defer C.tkrzw_free_str_array(xkeys, C.int32_t(len(keys)))
+	xkey_ptr := uintptr(unsafe.Pointer(xkeys))
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		xkey := (*C.TkrzwStr)(unsafe.Pointer(xkey_ptr))
+		xkey.ptr = C.CString(key)
+		xkey.size = C.int32_t(len(key))
+		xkey_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	res := C.do_dbm_remove_multi(xdbm, xkeys, C.int32_t(len(keys)))
 	status := convert_status(res)
 	return status
 }
@@ -428,7 +512,7 @@ func dbm_inspect(dbm uintptr, records map[string]string) {
 	defer C.tkrzw_free_str_map(res.records, res.num_records)
 	rec_ptr := uintptr(unsafe.Pointer(res.records))
 	for i := C.int32_t(0); i < res.num_records; i++ {
-		elem := *(*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
+		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
 		name := C.GoStringN(elem.key_ptr, elem.key_size)
 		value := C.GoStringN(elem.value_ptr, elem.value_size)
 		records[name] = value
