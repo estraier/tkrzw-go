@@ -30,33 +30,41 @@ typedef struct {
 typedef struct {
   TkrzwDBM* dbm;
   RES_STATUS status;
-} RES_DBM_OPEN;
+} RES_DBM;
 
 typedef struct {
   char* value_ptr;
   int32_t value_size;
   RES_STATUS status;
-} RES_DBM_GET;
+} RES_VALUE;
 
 typedef struct {
   int64_t count;
   RES_STATUS status;
-} RES_DBM_COUNT;
+} RES_INT;
 
 typedef struct {
-  char* path;
+  char* str;
   RES_STATUS status;
-} RES_DBM_GET_FILE_PATH;
+} RES_STR;
 
 typedef struct {
   bool value;
   RES_STATUS status;
-} RES_DBM_BOOL;
+} RES_BOOL;
 
 typedef struct {
   TkrzwKeyValuePair* records;
   int32_t num_records;
-} RES_DBM_RECORDS;
+} RES_MAP;
+
+typedef struct {
+  char* key_ptr;
+  int32_t key_size;
+  char* value_ptr;
+  int32_t value_size;
+  RES_STATUS status;
+} RES_REC;
 
 char* copy_status_message(const char* message) {
   if (*message == '\0') {
@@ -70,8 +78,8 @@ char* copy_status_message(const char* message) {
   return new_message;
 }
 
-RES_DBM_OPEN do_dbm_open(const char* path, bool writable, const char* params) {
-  RES_DBM_OPEN res;
+RES_DBM do_dbm_open(const char* path, bool writable, const char* params) {
+  RES_DBM res;
   res.dbm = tkrzw_dbm_open(path, writable, params);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -88,8 +96,8 @@ RES_STATUS do_dbm_close(TkrzwDBM* dbm) {
   return res;
 }
 
-RES_DBM_GET do_dbm_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
-  RES_DBM_GET res;
+RES_VALUE do_dbm_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
+  RES_VALUE res;
   res.value_ptr = tkrzw_dbm_get(dbm, key_ptr, key_size, &res.value_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -153,16 +161,16 @@ RES_STATUS do_dbm_compare_exchange(
     const char* desired_ptr, int32_t desired_size) {
   RES_STATUS res;
   tkrzw_dbm_compare_exchange(
-	  dbm, key_ptr, key_size, expected_ptr, expected_size, desired_ptr, desired_size);
+      dbm, key_ptr, key_size, expected_ptr, expected_size, desired_ptr, desired_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
   return res;
 }
 
-RES_DBM_COUNT do_dbm_increment(
-  TkrzwDBM* dbm, const char* key_ptr, int32_t key_size, int64_t inc, int64_t init) {
-  RES_DBM_COUNT res;
+RES_INT do_dbm_increment(
+    TkrzwDBM* dbm, const char* key_ptr, int32_t key_size, int64_t inc, int64_t init) {
+  RES_INT res;
   res.count = tkrzw_dbm_increment(dbm, key_ptr, key_size, inc, init);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -170,8 +178,8 @@ RES_DBM_COUNT do_dbm_increment(
   return res;
 }
 
-RES_DBM_COUNT do_dbm_count(TkrzwDBM* dbm) {
-  RES_DBM_COUNT res;
+RES_INT do_dbm_count(TkrzwDBM* dbm) {
+  RES_INT res;
   res.count = tkrzw_dbm_count(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -179,8 +187,8 @@ RES_DBM_COUNT do_dbm_count(TkrzwDBM* dbm) {
   return res;
 }
 
-RES_DBM_COUNT do_dbm_get_file_size(TkrzwDBM* dbm) {
-  RES_DBM_COUNT res;
+RES_INT do_dbm_get_file_size(TkrzwDBM* dbm) {
+  RES_INT res;
   res.count = tkrzw_dbm_get_file_size(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -188,9 +196,9 @@ RES_DBM_COUNT do_dbm_get_file_size(TkrzwDBM* dbm) {
   return res;
 }
 
-RES_DBM_GET_FILE_PATH do_dbm_get_file_path(TkrzwDBM* dbm) {
-  RES_DBM_GET_FILE_PATH res;
-  res.path = tkrzw_dbm_get_file_path(dbm);
+RES_STR do_dbm_get_file_path(TkrzwDBM* dbm) {
+  RES_STR res;
+  res.str = tkrzw_dbm_get_file_path(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -215,8 +223,8 @@ RES_STATUS do_dbm_rebuild(TkrzwDBM* dbm, const char* params) {
   return res;
 }
 
-RES_DBM_BOOL do_dbm_should_be_rebuilt(TkrzwDBM* dbm) {
-  RES_DBM_BOOL res;
+RES_BOOL do_dbm_should_be_rebuilt(TkrzwDBM* dbm) {
+  RES_BOOL res;
   res.value = tkrzw_dbm_should_be_rebuilt(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -251,9 +259,118 @@ RES_STATUS do_dbm_export(TkrzwDBM* dbm, TkrzwDBM* dest_dbm) {
   return res;
 }
 
-RES_DBM_RECORDS do_dbm_inspect(TkrzwDBM* dbm) {
-  RES_DBM_RECORDS res;
+RES_MAP do_dbm_inspect(TkrzwDBM* dbm) {
+  RES_MAP res;
   res.records = tkrzw_dbm_inspect(dbm, &res.num_records);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_first(TkrzwDBMIter* iter) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_first(iter);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_last(TkrzwDBMIter* iter) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_last(iter);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_jump(TkrzwDBMIter* iter, const char* key_ptr, int32_t key_size) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_jump(iter, key_ptr, key_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_jump_lower(
+    TkrzwDBMIter* iter, const char* key_ptr, int32_t key_size, bool inclusive) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_jump_lower(iter, key_ptr, key_size, inclusive);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_jump_upper(
+    TkrzwDBMIter* iter, const char* key_ptr, int32_t key_size, bool inclusive) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_jump_upper(iter, key_ptr, key_size, inclusive);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_next(TkrzwDBMIter* iter) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_next(iter);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_previous(TkrzwDBMIter* iter) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_previous(iter);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STR do_dbm_iter_get_key_esc(TkrzwDBMIter* iter) {
+  int32_t key_size = 0;
+  char* key_ptr = tkrzw_dbm_iter_get_key(iter, &key_size);
+  RES_STR res;
+  if (key_ptr == NULL) {
+    res.str = NULL;
+  } else {
+    res.str = tkrzw_str_escape_c(key_ptr, key_size, true, NULL);
+  }
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_REC do_dbm_iter_get(TkrzwDBMIter* iter) {
+  RES_REC res;
+  res.key_ptr = NULL;
+  res.value_ptr = NULL;
+  tkrzw_dbm_iter_get(iter, &res.key_ptr, &res.key_size, &res.value_ptr, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_VALUE do_dbm_iter_get_key(TkrzwDBMIter* iter) {
+  RES_VALUE res;
+  res.value_ptr = tkrzw_dbm_iter_get_key(iter, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_VALUE do_dbm_iter_get_value(TkrzwDBMIter* iter) {
+  RES_VALUE res;
+  res.value_ptr = tkrzw_dbm_iter_get_value(iter, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
   return res;
 }
 
@@ -309,7 +426,7 @@ func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
 	return value, status
 }
 
-func dbm_get_multi(dbm uintptr, keys []string) (map[string][]byte) {
+func dbm_get_multi(dbm uintptr, keys []string) map[string][]byte {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
 	xkeys := (*C.TkrzwStr)(unsafe.Pointer(C.malloc(C.size_t(xkeys_size + 1))))
@@ -429,7 +546,7 @@ func dbm_compare_exchange(dbm uintptr, key []byte, expected []byte, desired []by
 	}
 	res := C.do_dbm_compare_exchange(
 		xdbm, xkey_ptr, C.int32_t(len(key)),
-    xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
+		xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
 	status := convert_status(res)
 	return status
 }
@@ -439,7 +556,7 @@ func dbm_increment(dbm uintptr, key []byte, inc int64, init int64) (int64, *Stat
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
 	res := C.do_dbm_increment(
-    xdbm, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
+		xdbm, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
 	status := convert_status(res.status)
 	return int64(res.count), status
 }
@@ -462,9 +579,9 @@ func dbm_get_file_path(dbm uintptr) (string, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_get_file_path(xdbm)
 	var path string
-	if res.path != nil {
-		defer C.free(unsafe.Pointer(res.path))
-		path = C.GoString(res.path)
+	if res.str != nil {
+		defer C.free(unsafe.Pointer(res.str))
+		path = C.GoString(res.str)
 	}
 	status := convert_status(res.status)
 	return path, status
@@ -546,6 +663,124 @@ func dbm_is_healthy(dbm uintptr) bool {
 func dbm_is_ordered(dbm uintptr) bool {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	return bool(C.tkrzw_dbm_is_ordered(xdbm))
+}
+
+func dbm_make_iterator(dbm uintptr) uintptr {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	return uintptr(unsafe.Pointer(C.tkrzw_dbm_make_iterator(xdbm)))
+}
+
+func dbm_iter_free(iter uintptr) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	C.tkrzw_dbm_iter_free(xiter)
+}
+
+func dbm_iter_first(iter uintptr) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_first(xiter)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_last(iter uintptr) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_last(xiter)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_jump(iter uintptr, key []byte) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	res := C.do_dbm_iter_jump(xiter, xkey_ptr, C.int32_t(len(key)))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_jump_lower(iter uintptr, key []byte, inclusive bool) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	res := C.do_dbm_iter_jump_lower(xiter, xkey_ptr, C.int32_t(len(key)), C.bool(inclusive))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_jump_upper(iter uintptr, key []byte, inclusive bool) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	res := C.do_dbm_iter_jump_upper(xiter, xkey_ptr, C.int32_t(len(key)), C.bool(inclusive))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_next(iter uintptr) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_next(xiter)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_previous(iter uintptr) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_previous(xiter)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_get_key_esc(iter uintptr) (string, *Status) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_get_key_esc(xiter)
+	var key string
+	if res.str != nil {
+		defer C.free(unsafe.Pointer(res.str))
+		key = C.GoString(res.str)
+	}
+	status := convert_status(res.status)
+	return key, status
+}
+
+func dbm_iter_get(iter uintptr) ([]byte, []byte, *Status) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_get(xiter)
+	var key []byte = nil
+	if res.key_ptr != nil {
+		defer C.free(unsafe.Pointer(res.key_ptr))
+		key = C.GoBytes(unsafe.Pointer(res.key_ptr), res.key_size)
+	}
+	var value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return key, value, status
+}
+
+func dbm_iter_get_key(iter uintptr) ([]byte, *Status) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_get_key(xiter)
+	var key []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		key = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return key, status
+}
+
+func dbm_iter_get_value(iter uintptr) ([]byte, *Status) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_get_value(xiter)
+	var value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return value, status
 }
 
 // END OF FILE

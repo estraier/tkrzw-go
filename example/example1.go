@@ -19,5 +19,34 @@ import (
 )
 
 func main() {
-	fmt.Println(tkrzw.VERSION)
+	// Prepares the database.
+	dbm := tkrzw.NewDBM()
+	dbm.Open("casket.tkh", true, "truncate=true,num_buckets=100")
+
+	// Sets records.
+	// Keys and values are implicitly converted into bytes.
+	dbm.Set("first", "hop", true)
+	dbm.Set("second", "step", true)
+	dbm.Set("third", "jump", true)
+
+	// Retrieves record values.
+	fmt.Println(dbm.GetStrSimple("first", "*"))
+	fmt.Println(dbm.GetStrSimple("second", "*"))
+	fmt.Println(dbm.GetStrSimple("third", "*"))
+
+	// Traverses records.
+	iter := dbm.MakeIterator()
+	iter.First()
+	for {
+		key, value, status := iter.GetStr()
+		if !status.IsOK() {
+			break
+		}
+		fmt.Println(key, value)
+		iter.Next()
+	}
+	iter.Destruct()
+
+	// Closes the database.
+	dbm.Close()
 }

@@ -16,8 +16,8 @@ Then, run these commands.
   make test
 
 Installation is usually done implicitly by Go Modules (vgo).
-So, just write import the package "github.com/estraier/tkrzw-go"
-and use it as "tkrzw".
+So, just write an import directive for the package
+"github.com/estraier/tkrzw-go" and use it as "tkrzw".
 See https://dbmx.net/tkrzw/api-go/ for details of the API.
 
 Thanks.

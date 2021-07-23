@@ -30,14 +30,46 @@ Install the latest version of Tkrzw beforehand.  If you write the above import d
 
 The following code is a simple example to use a database, without checking errors.  Many methods accept both byte arrays and strings.  If strings are given, they are converted implicitly into byte arrays.
 
+ package main
+
  import (
-   "fmt"
-   "github.com/estraier/tkrzw-go"
+  "fmt"
+  "github.com/estraier/tkrzw-go"
  )
 
  func main() {
-   fmt.Println("Hello World")
+  // Prepares the database.
+  dbm := tkrzw.NewDBM()
+  dbm.Open("casket.tkh", true, "truncate=true,num_buckets=100")
+
+  // Sets records.
+  // Keys and values are implicitly converted into bytes.
+  dbm.Set("first", "hop", true)
+  dbm.Set("second", "step", true)
+  dbm.Set("third", "jump", true)
+
+  // Retrieves record values.
+  fmt.Println(dbm.GetStrSimple("first", "*"))
+  fmt.Println(dbm.GetStrSimple("second", "*"))
+  fmt.Println(dbm.GetStrSimple("third", "*"))
+
+  // Traverses records.
+  iter := dbm.MakeIterator()
+  iter.First()
+  for {
+    key, value, status := iter.GetStr()
+    if !status.IsOK() {
+      break
+    }
+    fmt.Println(key, value)
+    iter.Next()
+  }
+  iter.Destruct()
+
+  // Closes the database.
+  dbm.Close()
  }
+
 */
 package tkrzw
 

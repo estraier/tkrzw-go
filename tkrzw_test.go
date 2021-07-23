@@ -272,7 +272,7 @@ func TestDBMBasic(t *testing.T) {
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckEq(t, 105, inc_value)
 	CheckTrue(t, dbm.Remove("num").Equals(StatusSuccess))
-  records := map[string]string{"one": "first", "two": "second"}
+	records := map[string]string{"one": "first", "two": "second"}
 	CheckTrue(t, dbm.Set("one", "first", false).IsOK())
 	CheckTrue(t, dbm.Set("two", "second", false).IsOK())
 	keys := []string{"one", "two", "three"}
@@ -291,7 +291,7 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, filePath, gotFilePath)
 	CheckEq(t, filePath, dbm.GetFilePathSimple())
 	for i := 1; i <= 10; i++ {
-		CheckTrue(t, dbm.Set(i, i, true).IsOK())
+		CheckTrue(t, dbm.Set(i, i*i, true).IsOK())
 	}
 	CheckEq(t, 10, dbm.CountSimple())
 	tobe, status := dbm.ShouldBeRebuilt()
@@ -305,23 +305,56 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, 0, dbm.CountSimple())
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 	CheckTrue(t, dbm.Open(copyPath, true, "").Equals(StatusSuccess))
-	copyDbm := NewDBM()
-	CheckTrue(t, copyDbm.Open(copyPath, false, "").Equals(StatusSuccess))
-	CheckEq(t, 10, copyDbm.CountSimple())
-	CheckTrue(t, copyDbm.Export(dbm).Equals(StatusSuccess))
+	copyDBM := NewDBM()
+	CheckTrue(t, copyDBM.Open(copyPath, false, "").Equals(StatusSuccess))
+	CheckEq(t, 10, copyDBM.CountSimple())
+	CheckTrue(t, copyDBM.Export(dbm).Equals(StatusSuccess))
 	CheckEq(t, 10, dbm.CountSimple())
-	CheckTrue(t, copyDbm.Close().Equals(StatusSuccess))
+	CheckTrue(t, copyDBM.Close().Equals(StatusSuccess))
 	inspRecords := dbm.Inspect()
 	CheckEq(t, "10", inspRecords["num_records"])
 	CheckEq(t, "HashDBM", inspRecords["class"])
-
-	for name, value := range inspRecords {
-
-		fmt.Println(name, value)
+	iter := dbm.MakeIterator()
+	CheckTrue(t, iter.First().Equals(StatusSuccess))
+	CheckTrue(t, len(iter.String()) > 1)
+	count = 0
+	records = make(map[string]string)
+	for {
+		key, value, status := iter.Get()
+		if !status.IsOK() {
+			CheckTrue(t, status.Equals(StatusNotFoundError))
+			break
+		}
+		key_str, value_str, status := iter.GetStr()
+		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, key_str, string(key))
+		CheckEq(t, value_str, string(value))
+		records[key_str] = value_str
+		one_key, status := iter.GetKey()
+		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, key_str, string(one_key))
+		one_key_str, status := iter.GetKeyStr()
+		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, key_str, one_key_str)
+		one_value, status := iter.GetValue()
+		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, value_str, string(one_value))
+		one_value_str, status := iter.GetValueStr()
+		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, value_str, one_value_str)
+		CheckTrue(t, iter.Next().Equals(StatusSuccess))
+		count++
 	}
-	fmt.Println(inspRecords["class"])
-	fmt.Println(inspRecords["classa"])
-
+	CheckEq(t, 10, count)
+	for i := 1; i <= 10; i++ {
+		CheckEq(t, ToString(i*i), records[ToString(i)])
+	}
+	CheckTrue(t, iter.Jump("5").Equals(StatusSuccess))
+	key, value, status := iter.Get()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "5", key)
+	CheckEq(t, "25", value)
+	iter.Destruct()
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
 

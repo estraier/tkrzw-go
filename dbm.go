@@ -550,7 +550,11 @@ func (self *DBM) IsOrdered() bool {
 //
 // Every iterator should be destructed explicitly by the "Destruct" method.
 func (self *DBM) MakeIterator() *Iterator {
-	return nil
+	if self.dbm == 0 {
+		return nil
+	}
+	iter := dbm_make_iterator(self.dbm)
+	return &Iterator{iter}
 }
 
 // END OF FILE
