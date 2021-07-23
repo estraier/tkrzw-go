@@ -354,7 +354,66 @@ func TestDBMBasic(t *testing.T) {
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckEq(t, "5", key)
 	CheckEq(t, "25", value)
+	CheckTrue(t, iter.Set("foobar").Equals(StatusSuccess))
+	value_str, status = iter.GetValueStr()
+	CheckTrue(t, iter.Remove().Equals(StatusSuccess))
+	CheckEq(t, 9, dbm.CountSimple())
 	iter.Destruct()
+	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+}
+
+func TestDBMIterator(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.tkt")
+	dbm := NewDBM()
+	status := dbm.Open(filePath, true, "truncate=true")
+	CheckTrue(t, status.Equals(StatusSuccess))
+	for i := 1; i <= 100; i++ {
+		key := fmt.Sprintf("%08d", i)
+		value := fmt.Sprintf("%d", i * i)
+		CheckTrue(t, dbm.Set(key, value, false).Equals(StatusSuccess))
+	}
+	CheckEq(t, 100, dbm.CountSimple())
+	iter := dbm.MakeIterator()
+	CheckTrue(t, iter.Jump("00000050").Equals(StatusSuccess))
+	CheckTrue(t, iter.Remove().Equals(StatusSuccess))
+	CheckTrue(t, iter.Jump("00000050").Equals(StatusSuccess))
+	key, status := iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000051", key)
+	CheckTrue(t, iter.JumpLower("00000051", true).Equals(StatusSuccess))
+	key, status = iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000051", key)
+	CheckTrue(t, iter.JumpLower("00000051", false).Equals(StatusSuccess))
+	key, status = iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000049", key)
+	CheckTrue(t, iter.Next().Equals(StatusSuccess))
+	key, status = iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000051", key)
+	CheckTrue(t, iter.JumpUpper("00000049", true).Equals(StatusSuccess))
+	key, status = iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000049", key)
+	CheckTrue(t, iter.JumpUpper("00000049", false).Equals(StatusSuccess))
+	key, status = iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000051", key)
+	CheckTrue(t, iter.Previous().Equals(StatusSuccess))
+	key, status = iter.GetKeyStr()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "00000049", key)
+
+
+	
+
+
+	iter.Destruct()
+
+
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
 

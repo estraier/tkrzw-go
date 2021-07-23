@@ -209,4 +209,25 @@ func (self *Iterator) GetValueStr() (string, *Status) {
 	return "", status
 }
 
+// Sets the value of the current record.
+//
+// @param value The value of the record.
+// @return: The result status.
+func (self *Iterator) Set(value interface{}) *Status {
+	if self.iter == 0 {
+		return NewStatus2(StatusPreconditionError, "destructed Iterator")
+	}
+	return dbm_iter_set(self.iter, ToByteArray(value))
+}
+
+// Removes the current record.
+//
+// @return The result status.
+func (self *Iterator) Remove() *Status {
+	if self.iter == 0 {
+		return NewStatus2(StatusPreconditionError, "destructed Iterator")
+	}
+	return dbm_iter_remove(self.iter)
+}
+
 // END OF FILE

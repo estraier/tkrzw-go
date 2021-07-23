@@ -374,6 +374,24 @@ RES_VALUE do_dbm_iter_get_value(TkrzwDBMIter* iter) {
   return res;
 }
 
+RES_STATUS do_dbm_iter_set(TkrzwDBMIter* iter, const char* value_ptr, int32_t value_size) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_set(iter, value_ptr, value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_iter_remove(TkrzwDBMIter* iter) {
+  RES_STATUS res;
+  tkrzw_dbm_iter_remove(iter);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 */
 import "C"
 
@@ -781,6 +799,22 @@ func dbm_iter_get_value(iter uintptr) ([]byte, *Status) {
 	}
 	status := convert_status(res.status)
 	return value, status
+}
+
+func dbm_iter_set(iter uintptr, value []byte) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	res := C.do_dbm_iter_set(xiter, xvalue_ptr, C.int32_t(len(value)))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_iter_remove(iter uintptr) *Status {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_remove(xiter);
+	status := convert_status(res)
+	return status
 }
 
 // END OF FILE
