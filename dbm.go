@@ -226,6 +226,41 @@ func (self *DBM) Append(key interface{}, value interface{}, delim interface{}) *
 	return dbm_append(self.dbm, ToByteArray(key), ToByteArray(value), ToByteArray(delim))
 }
 
+// Compares the value of a record and exchanges if the condition meets.
+//
+// @param key The key of the record.
+// @param expected The expected value.  If it is nil, no existing record is expected.
+// @param desired The desired value.  If it is nil, the record is to be removed.
+// @return The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+func (self *DBM) CompareExchange(
+	key interface{}, expected interface{}, desired interface{}) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	var rawExpected []byte
+	if expected != nil {
+		rawExpected = ToByteArray(expected)
+	}
+	var rawDesired []byte
+	if desired != nil {
+		rawDesired = ToByteArray(desired)
+	}
+	return dbm_compare_exchange(self.dbm, ToByteArray(key), rawExpected, rawDesired)
+}
+
+// Increments the numeric value of a record.
+//
+// @param key The key of the record.
+// @param inc The incremental value.  If it is Utility.INT64MIN, the current value is not changed and a new record is not created.
+// @param init The initial value.
+// @return The current value and the result status.
+func (self *DBM) Increment(key interface{}, inc interface{}, init interface{}) (int64, *Status) {
+	if self.dbm == 0 {
+		return 0, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_increment(self.dbm, ToByteArray(key), ToInt(inc), ToInt(init))
+}
+
 // Gets the number of records.
 //
 // @return The number of records and the result status.
@@ -431,3 +466,5 @@ func (self *DBM) IsOrdered() bool {
 	}
 	return dbm_is_ordered(self.dbm)
 }
+
+// END OF FILE

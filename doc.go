@@ -40,3 +40,5 @@ The following code is a simple example to use a database, without checking error
  }
 */
 package tkrzw
+
+// END OF FILE

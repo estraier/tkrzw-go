@@ -181,3 +181,5 @@ func (self *Status) OrDie() {
 		panic(self.String())
 	}
 }
+
+// END OF FILE

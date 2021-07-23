@@ -245,6 +245,26 @@ func TestDBMBasic(t *testing.T) {
 	CheckTrue(t, dbm.Remove([]byte("three")).Equals(StatusSuccess))
 	CheckTrue(t, dbm.Remove([]byte("fourth")).Equals(StatusNotFoundError))
 	CheckEq(t, 0, dbm.CountSimple())
+	CheckTrue(t, dbm.CompareExchange("num", nil, "first").Equals(StatusSuccess))
+	CheckEq(t, "first", dbm.GetSimple("num", "*"))
+	CheckTrue(t, dbm.CompareExchange("num", nil, "first").Equals(StatusInfeasibleError))
+	CheckTrue(t, dbm.CompareExchange("num", "first", "second").Equals(StatusSuccess))
+	CheckEq(t, "second", dbm.GetSimple("num", "*"))
+	CheckTrue(t, dbm.CompareExchange("num", "second", nil).Equals(StatusSuccess))
+	CheckEq(t, "*", dbm.GetSimple("num", "*"))
+	inc_value, status := dbm.Increment("num", 2, 100)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, 102, inc_value)
+	inc_value, status = dbm.Increment("num", 3, 100)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, 105, inc_value)
+	CheckTrue(t, dbm.Remove("num").Equals(StatusSuccess))
+	
+
+
+
+	
+	CheckEq(t, 0, dbm.CountSimple())
 	fileSize, status := dbm.GetFileSize()
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckTrue(t, fileSize > 0)
@@ -288,3 +308,5 @@ func TestDBMBasic(t *testing.T) {
 
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
+
+// END OF FILE

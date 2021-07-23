@@ -115,6 +115,29 @@ RES_STATUS do_dbm_append(
   return res;
 }
 
+RES_STATUS do_dbm_compare_exchange(
+    TkrzwDBM* dbm, const char* key_ptr, int32_t key_size,
+    const char* expected_ptr, int32_t expected_size,
+    const char* desired_ptr, int32_t desired_size) {
+  RES_STATUS res;
+  tkrzw_dbm_compare_exchange(
+	  dbm, key_ptr, key_size, expected_ptr, expected_size, desired_ptr, desired_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_DBM_COUNT do_dbm_increment(
+  TkrzwDBM* dbm, const char* key_ptr, int32_t key_size, int64_t inc, int64_t init) {
+  RES_DBM_COUNT res;
+  res.count = tkrzw_dbm_increment(dbm, key_ptr, key_size, inc, init);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_DBM_COUNT do_dbm_count(TkrzwDBM* dbm) {
   RES_DBM_COUNT res;
   res.count = tkrzw_dbm_count(dbm);
@@ -244,7 +267,7 @@ func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
-	res := C.do_dbm_get(xdbm, xkey_ptr, C.int(len(key)))
+	res := C.do_dbm_get(xdbm, xkey_ptr, C.int32_t(len(key)))
 	var value []byte = nil
 	if res.value_ptr != nil {
 		defer C.free(unsafe.Pointer(res.value_ptr))
@@ -260,8 +283,8 @@ func dbm_set(dbm uintptr, key []byte, value []byte, overwrite bool) *Status {
 	defer C.free(unsafe.Pointer(xkey_ptr))
 	xvalue_ptr := (*C.char)(C.CBytes(value))
 	defer C.free(unsafe.Pointer(xvalue_ptr))
-	res := C.do_dbm_set(xdbm, xkey_ptr, C.int(len(key)),
-		xvalue_ptr, C.int(len(value)), C.bool(overwrite))
+	res := C.do_dbm_set(xdbm, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)), C.bool(overwrite))
 	status := convert_status(res)
 	return status
 }
@@ -270,7 +293,7 @@ func dbm_remove(dbm uintptr, key []byte) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
-	res := C.do_dbm_remove(xdbm, xkey_ptr, C.int(len(key)))
+	res := C.do_dbm_remove(xdbm, xkey_ptr, C.int32_t(len(key)))
 	status := convert_status(res)
 	return status
 }
@@ -283,10 +306,45 @@ func dbm_append(dbm uintptr, key []byte, value []byte, delim []byte) *Status {
 	defer C.free(unsafe.Pointer(xvalue_ptr))
 	xdelim_ptr := (*C.char)(C.CBytes(delim))
 	defer C.free(unsafe.Pointer(xdelim_ptr))
-	res := C.do_dbm_append(xdbm, xkey_ptr, C.int(len(key)),
-		xvalue_ptr, C.int(len(value)), xdelim_ptr, C.int(len(delim)))
+	res := C.do_dbm_append(xdbm, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)), xdelim_ptr, C.int32_t(len(delim)))
 	status := convert_status(res)
 	return status
+}
+
+func dbm_compare_exchange(dbm uintptr, key []byte, expected []byte, desired []byte) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	var xexpected_ptr *C.char
+	var xexpected_size C.int32_t
+	if expected != nil {
+		xexpected_ptr = (*C.char)(C.CBytes(expected))
+		defer C.free(unsafe.Pointer(xexpected_ptr))
+		xexpected_size = C.int32_t(len(expected))
+	}
+	var xdesired_ptr *C.char
+	var xdesired_size C.int32_t
+	if desired != nil {
+		xdesired_ptr = (*C.char)(C.CBytes(desired))
+		defer C.free(unsafe.Pointer(xdesired_ptr))
+		xdesired_size = C.int32_t(len(desired))
+	}
+	res := C.do_dbm_compare_exchange(
+		xdbm, xkey_ptr, C.int32_t(len(key)),
+    xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_increment(dbm uintptr, key []byte, inc int64, init int64) (int64, *Status) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	res := C.do_dbm_increment(
+    xdbm, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
+	status := convert_status(res.status)
+	return int64(res.count), status
 }
 
 func dbm_count(dbm uintptr) (int64, *Status) {
@@ -392,3 +450,5 @@ func dbm_is_ordered(dbm uintptr) bool {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	return bool(C.tkrzw_dbm_is_ordered(xdbm))
 }
+
+// END OF FILE

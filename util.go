@@ -5,6 +5,10 @@ import (
 	"strconv"
 )
 
+// Converts any object into a string.
+//
+// @param x The object to convert.
+// @return The result string.
 func ToString(x interface{}) string {
 	switch x := x.(type) {
 	case []byte:
@@ -34,6 +38,10 @@ func ToString(x interface{}) string {
 	return fmt.Sprintf("#<%T>", x)
 }
 
+// Converts any object into a byte array.
+//
+// @param x The object to convert.
+// @return The result byte array.
 func ToByteArray(x interface{}) []byte {
 	switch x := x.(type) {
 	case []byte:
@@ -63,6 +71,10 @@ func ToByteArray(x interface{}) []byte {
 	return []byte(fmt.Sprintf("#<%T>", x))
 }
 
+// Converts any object into an integer.
+//
+// @param x The object to convert.
+// @return The result integer.
 func ToInt(value interface{}) int64 {
 	switch value := value.(type) {
 	case int:
@@ -115,6 +127,10 @@ func ToInt(value interface{}) int64 {
 	return 0
 }
 
+// Converts any object into a real number.
+//
+// @param x The object to convert.
+// @return The result real number.
 func ToFloat(value interface{}) float64 {
 	switch value := value.(type) {
 	case int:
@@ -158,3 +174,5 @@ func ToFloat(value interface{}) float64 {
 	}
 	return 0.0
 }
+
+// END OF FILE
