@@ -6,37 +6,37 @@ type StatusCode int32
 // Enumeration of status codes.
 const (
 	// Success.
-	STATUS_SUCCESS                = StatusCode(0)
+	StatusSuccess = StatusCode(0)
 	// Generic error whose cause is unknown.
-	STATUS_UNKNOWN_ERROR          = StatusCode(1)
+	StatusUnknownError = StatusCode(1)
 	// Generic error from underlying systems.
-	STATUS_SYSTEM_ERROR           = StatusCode(2)
+	StatusSystemError = StatusCode(2)
 	// Error that the feature is not implemented.
-	STATUS_NOT_IMPLEMENTED_ERROR  = StatusCode(3)
+	StatusNotImplementedError = StatusCode(3)
 	// Error that a precondition is not met.
-	STATUS_PRECONDITION_ERROR     = StatusCode(4)
+	StatusPreconditionError = StatusCode(4)
 	// Error that a given argument is invalid.
-	STATUS_INVALID_ARGUMENT_ERROR = StatusCode(5)
+	StatusInvalidArgumentError = StatusCode(5)
 	// Error that the operation is canceled.
-	STATUS_CANCELED_ERROR         = StatusCode(6)
+	StatusCanceledError = StatusCode(6)
 	// Error that a specific resource is not found.
-	STATUS_NOT_FOUND_ERROR        = StatusCode(7)
+	StatusNotFoundError = StatusCode(7)
 	// Error that the operation is not permitted.
-	STATUS_PERMISSION_ERROR       = StatusCode(8)
+	StatusPermissionError = StatusCode(8)
 	// Error that the operation is infeasible.
-	STATUS_INFEASIBLE_ERROR       = StatusCode(9)
+	StatusInfeasibleError = StatusCode(9)
 	// Error that a specific resource is duplicated.
-	STATUS_DUPLICATION_ERROR      = StatusCode(10)
+	StatusDuplicationError = StatusCode(10)
 	// Error that internal data are broken.
-	STATUS_BROKEN_DATA_ERROR      = StatusCode(11)
+	StatusBrokenDataError = StatusCode(11)
 	// Generic error caused by the application logic.
-	STATUS_APPLICATION_ERROR      = StatusCode(12)
+	StatusApplicationError = StatusCode(12)
 )
 
 // Status of operations
 type Status struct {
 	// The status code.
-	code    StatusCode
+	code StatusCode
 	// The status message.
 	message string
 }
@@ -47,31 +47,31 @@ type Status struct {
 // @return The name of the status code.
 func StatusCodeName(code StatusCode) string {
 	switch code {
-	case STATUS_SUCCESS:
+	case StatusSuccess:
 		return "SUCCESS"
-	case STATUS_UNKNOWN_ERROR:
+	case StatusUnknownError:
 		return "UNKNOWN_ERROR"
-	case STATUS_SYSTEM_ERROR:
+	case StatusSystemError:
 		return "SYSTEM_ERROR"
-	case STATUS_NOT_IMPLEMENTED_ERROR:
+	case StatusNotImplementedError:
 		return "NOT_IMPLEMENTED_ERROR"
-	case STATUS_PRECONDITION_ERROR:
+	case StatusPreconditionError:
 		return "PRECONDITION_ERROR"
-	case STATUS_INVALID_ARGUMENT_ERROR:
+	case StatusInvalidArgumentError:
 		return "INVALID_ARGUMENT_ERROR"
-	case STATUS_CANCELED_ERROR:
+	case StatusCanceledError:
 		return "CANCELED_ERROR"
-	case STATUS_NOT_FOUND_ERROR:
+	case StatusNotFoundError:
 		return "NOT_FOUND_ERROR"
-	case STATUS_PERMISSION_ERROR:
+	case StatusPermissionError:
 		return "PERMISSION_ERROR"
-	case STATUS_INFEASIBLE_ERROR:
+	case StatusInfeasibleError:
 		return "INFEASIBLE_ERROR"
-	case STATUS_DUPLICATION_ERROR:
+	case StatusDuplicationError:
 		return "DUPLICATION_ERROR"
-	case STATUS_BROKEN_DATA_ERROR:
+	case StatusBrokenDataError:
 		return "BROKEN_DATA_ERROR"
-	case STATUS_APPLICATION_ERROR:
+	case StatusApplicationError:
 		return "APPLICATION_ERROR"
 	}
 	return "invalid code"
@@ -82,7 +82,7 @@ func StatusCodeName(code StatusCode) string {
 // @param args If the first parameter is given, it is treated as the status code.  If the second parameter is given, it is treated as the status message.
 // @return The pointer to the created status object.
 func NewStatus(args ...interface{}) *Status {
-	code := STATUS_SUCCESS
+	code := StatusSuccess
 	if len(args) > 0 {
 		code = args[0].(StatusCode)
 	}
@@ -140,7 +140,7 @@ func (self *Status) GetMessage() string {
 // @param code The status code.
 // @param message An arbitrary status message.
 func (self *Status) Set(args ...interface{}) {
-	code := STATUS_SUCCESS
+	code := StatusSuccess
 	if len(args) > 0 {
 		code = args[0].(StatusCode)
 	}
@@ -172,12 +172,12 @@ func (self *Status) Equals(rhs interface{}) bool {
 //
 // @return true if the status is success, or false if not.
 func (self *Status) IsOK() bool {
-	return self.code == STATUS_SUCCESS
+	return self.code == StatusSuccess
 }
 
 // Causes a panic if the status is not success.
 func (self *Status) OrDie() {
-  if self.code != STATUS_SUCCESS {
+	if self.code != StatusSuccess {
 		panic(self.String())
 	}
 }

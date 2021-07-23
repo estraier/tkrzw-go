@@ -1,7 +1,7 @@
 package tkrzw
 
 import (
-  "fmt"
+	"fmt"
 )
 
 // Polymorphic database manager.
@@ -111,10 +111,10 @@ func (self *DBM) String() string {
 // If the optional parameter "num_shards" is set, the database is sharded into multiple shard files.  Each file has a suffix like "-00003-of-00015".  If the value is 0, the number of shards is set by patterns of the existing files, or 1 if they doesn't exist.
 func (self *DBM) Open(path string, writable bool, params string) *Status {
 	if self.dbm != 0 {
-		return NewStatus2(STATUS_PRECONDITION_ERROR, "opened database")
+		return NewStatus2(StatusPreconditionError, "opened database")
 	}
 	dbm, status := dbm_open(path, writable, params)
-	if status.IsOK() {
+	if status.code == StatusSuccess {
 		self.dbm = dbm
 	}
 	return status
@@ -125,9 +125,11 @@ func (self *DBM) Open(path string, writable bool, params string) *Status {
 // @return The result status.
 func (self *DBM) Close() *Status {
 	if self.dbm == 0 {
-		return NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	return dbm_close(self.dbm)
+	status := dbm_close(self.dbm)
+	self.dbm = 0
+	return status
 }
 
 // Gets the value of a record of a key.
@@ -144,10 +146,10 @@ func (self *DBM) Get(key interface{}) ([]byte, *Status) {
 // @return The string value of the matching record and the result status.
 func (self *DBM) GetStr(key interface{}) (string, *Status) {
 	if self.dbm == 0 {
-		return "", NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return "", NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	value, status := dbm_get(self.dbm, ToByteArray(key))
-	if status.IsOK() {
+	if status.code == StatusSuccess {
 		return string(value), status
 	}
 	return "", status
@@ -156,33 +158,33 @@ func (self *DBM) GetStr(key interface{}) (string, *Status) {
 // Gets the value of a record of a key, in a simple way.
 //
 // @param key The key of the record.
-// @param default_value The value to be returned on failure.
+// @param defaultValue The value to be returned on failure.
 // @return The value of the matching record on success, or the default value on failure.
-func (self *DBM) GetSimple(key interface{}, default_value interface{}) []byte {
+func (self *DBM) GetSimple(key interface{}, defaultValue interface{}) []byte {
 	if self.dbm == 0 {
-		return ToByteArray(default_value)
+		return ToByteArray(defaultValue)
 	}
 	value, status := dbm_get(self.dbm, ToByteArray(key))
-	if status.IsOK() {
+	if status.code == StatusSuccess {
 		return value
 	}
-	return ToByteArray(default_value)
+	return ToByteArray(defaultValue)
 }
 
 // Gets the value of a record of a key, in a simple way, as a string.
 //
 // @param key The key of the record.
-// @param default_value The value to be returned on failure.
+// @param defaultValue The value to be returned on failure.
 // @return The value of the matching record on success, or the default value on failure.
-func (self *DBM) GetStrSimple(key interface{}, default_value interface{}) string {
+func (self *DBM) GetStrSimple(key interface{}, defaultValue interface{}) string {
 	if self.dbm == 0 {
-		return ToString(default_value)
+		return ToString(defaultValue)
 	}
 	value, status := dbm_get(self.dbm, ToByteArray(key))
-	if status.IsOK() {
+	if status.code == StatusSuccess {
 		return string(value)
 	}
-	return ToString(default_value)
+	return ToString(defaultValue)
 }
 
 // Sets a record of a key and a value.
@@ -191,9 +193,9 @@ func (self *DBM) GetStrSimple(key interface{}, default_value interface{}) string
 // @param value The value of the record.
 // @param overwrite Whether to overwrite the existing value.  It can be omitted and then false is set.
 // @return The result status.  If overwriting is abandoned, STATUS_DUPLICATION_ERROR is returned.
-func (self *DBM) Set(key interface{}, value interface{}, overwrite bool) (*Status) {
+func (self *DBM) Set(key interface{}, value interface{}, overwrite bool) *Status {
 	if self.dbm == 0 {
-		return NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_set(self.dbm, ToByteArray(key), ToByteArray(value), overwrite)
 }
@@ -202,9 +204,9 @@ func (self *DBM) Set(key interface{}, value interface{}, overwrite bool) (*Statu
 //
 // @param key The key of the record.
 // @return The result status.  If there's no matching record, STATUS_NOT_FOUND_ERROR is returned.
-func (self *DBM) Remove(key interface{}) (*Status) {
+func (self *DBM) Remove(key interface{}) *Status {
 	if self.dbm == 0 {
-		return NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_remove(self.dbm, ToByteArray(key))
 }
@@ -217,9 +219,9 @@ func (self *DBM) Remove(key interface{}) (*Status) {
 // @return The result status.
 //
 // If there's no existing record, the value is set without the delimiter.
-func (self *DBM) Append(key interface{}, value interface{}, delim interface{}) (*Status) {
+func (self *DBM) Append(key interface{}, value interface{}, delim interface{}) *Status {
 	if self.dbm == 0 {
-		return NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_append(self.dbm, ToByteArray(key), ToByteArray(value), ToByteArray(delim))
 }
@@ -229,7 +231,7 @@ func (self *DBM) Append(key interface{}, value interface{}, delim interface{}) (
 // @return The number of records and the result status.
 func (self *DBM) Count() (int64, *Status) {
 	if self.dbm == 0 {
-		return -1, NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return -1, NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_count(self.dbm)
 }
@@ -242,10 +244,10 @@ func (self *DBM) CountSimple() int64 {
 		return -1
 	}
 	count, status := dbm_count(self.dbm)
-	if status.IsOK() {
+	if status.code == StatusSuccess {
 		return count
 	}
-	return -1;
+	return -1
 }
 
 // Gets the current file size of the database.
@@ -253,7 +255,7 @@ func (self *DBM) CountSimple() int64 {
 // @return The current file size of the database and the result status.
 func (self *DBM) GetFileSize() (int64, *Status) {
 	if self.dbm == 0 {
-		return -1, NewStatus2(STATUS_PRECONDITION_ERROR, "not opened database")
+		return -1, NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_get_file_size(self.dbm)
 }
@@ -266,111 +268,166 @@ func (self *DBM) GetFileSizeSimple() int64 {
 		return -1
 	}
 	file_size, status := dbm_get_file_size(self.dbm)
-	if status.IsOK() {
+	if status.code == StatusSuccess {
 		return file_size
 	}
-	return -1;
+	return -1
 }
 
-
-
-
-/*
-
-func dbm_append(dbm uintptr, key []byte, value []byte, delim []byte) *Status {
-	if dbm == 0 || key == nil || value == nil || delim == nil {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Gets the path of the database file.
+//
+// @return The path of the database file and the result status.
+func (self *DBM) GetFilePath() (string, *Status) {
+	if self.dbm == 0 {
+		return "", NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	xkey_ptr := (*C.char)(C.CBytes(key))
-	defer C.free(unsafe.Pointer(xkey_ptr))
-	xvalue_ptr := (*C.char)(C.CBytes(value))
-	defer C.free(unsafe.Pointer(xvalue_ptr))
-	xdelim_ptr := (*C.char)(C.CBytes(delim))
-	defer C.free(unsafe.Pointer(xdelim_ptr))
-	res := C.do_dbm_append(xdbm, xkey_ptr, C.int(len(key)),
-		xvalue_ptr, C.int(len(value)), xdelim_ptr, C.int(len(delim)))
-	status := convert_status(res)
-	return status
+	return dbm_get_file_path(self.dbm)
 }
 
-func dbm_count(dbm uintptr) (int64, *Status) {
-	if dbm == 0 {
-		return -1, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Gets the path of the database file, in a simple way.
+//
+// @return The path of the database file, or an empty string on failure.
+func (self *DBM) GetFilePathSimple() string {
+	if self.dbm == 0 {
+		return ""
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	res := C.do_dbm_count(xdbm)
-	status := convert_status(res.status)
-	return int64(res.count), status
+	path, status := dbm_get_file_path(self.dbm)
+	if status.code == StatusSuccess {
+		return path
+	}
+	return ""
 }
 
-func dbm_get_file_size(dbm uintptr) (int64, *Status) {
-	if dbm == 0 {
-		return -1, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Removes all records.
+//
+// @return The result status.
+func (self *DBM) Clear() *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	res := C.do_dbm_get_file_size(xdbm)
-	status := convert_status(res.status)
-	return int64(res.count), status
+	return dbm_clear(self.dbm)
 }
 
-func dbm_get_file_path(dbm uintptr) (string, *Status) {
-	if dbm == 0 {
-		return "", NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Rebuilds the entire database.
+//
+// @param params Optional parameters.
+// @return The result status.
+//
+// The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+func (self *DBM) Rebuild(params string) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	res := C.do_dbm_get_file_path(xdbm)
-	var path string
-	if res.path != nil {
-		defer C.free(unsafe.Pointer(res.path))
-		path = C.GoString(res.path)
-	}
-	status := convert_status(res.status)
-	return path, status
+	return dbm_rebuild(self.dbm, params)
 }
 
-func dbm_clear(dbm uintptr) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Checks whether the database should be rebuilt.
+//
+// @return The result decision and the result status.  The decision is true to be optimized or false with no necessity.
+func (self *DBM) ShouldBeRebuilt() (bool, *Status) {
+	if self.dbm == 0 {
+		return false, NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	res := C.do_dbm_clear(xdbm)
-	status := convert_status(res)
-	return status
+	return dbm_should_be_rebuilt(self.dbm)
 }
 
-func dbm_rebuild(dbm uintptr, params string) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Checks whether the database should be rebuilt, in a simple way.
+//
+// @return True to be optimized or false with no necessity.
+func (self *DBM) ShouldBeRebuiltSimple() bool {
+	if self.dbm == 0 {
+		return false
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	xparams := C.CString(params)
-	defer C.free(unsafe.Pointer(xparams))
-	res := C.do_dbm_rebuild(xdbm, xparams)
-	status := convert_status(res)
-	return status
+	tobe, status := dbm_should_be_rebuilt(self.dbm)
+	if status.code == StatusSuccess {
+		return tobe
+	}
+	return false
 }
 
-func dbm_should_be_rebuilt(dbm uintptr) (bool, *Status) {
-	if dbm == 0 {
-		return false, NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Synchronizes the content of the database to the file system.
+//
+// @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+// @param params Optional parameters.
+//
+// Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
+func (self *DBM) Synchronize(hard bool, params string) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	res := C.do_dbm_should_be_rebuilt(xdbm)
-	status := convert_status(res.status)
-	return bool(res.value), status
+	return dbm_synchronize(self.dbm, hard, params)
 }
 
-func dbm_synchronize(dbm uintptr, hard bool, params string) *Status {
-	if dbm == 0 {
-		return NewStatus1(STATUS_INVALID_ARGUMENT_ERROR)
+// Copies the content of the database file to another file.
+//
+// @param destPath A path to the destination file.
+// @return The result status.
+func (self *DBM) CopyFileData(destPath string) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	xparams := C.CString(params)
-	defer C.free(unsafe.Pointer(xparams))
-	res := C.do_dbm_synchronize(xdbm, C.bool(hard), xparams)
-	status := convert_status(res)
-	return status
+	return dbm_copy_file_data(self.dbm, destPath)
 }
 
-*/
+// Exports all records to another database.
+//
+// @param destDbm The destination database.
+// @return The result status.
+func (self *DBM) Export(destDbm *DBM) *Status {
+	if self.dbm == 0 || destDbm.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_export(self.dbm, destDbm.dbm)
+}
+
+// Inspects the database.
+//
+// return: A map of property names and their values.
+func (self *DBM) Inspect() map[string]string {
+	records := make(map[string]string)
+	if self.dbm == 0 {
+		return records
+	}
+	dbm_inspect(self.dbm, records)
+	return records
+}
+
+// Checks whether the database is open.
+//
+// @return True if the database is open, or false if not.
+func (self *DBM) IsOpen() bool {
+	if self.dbm == 0 {
+		return false
+	}
+	return true
+}
+
+// Checks whether the database is writable.
+//
+// @return True if the database is writable, or false if not.
+func (self *DBM) IsWritable() bool {
+	if self.dbm == 0 {
+		return false
+	}
+	return dbm_is_writable(self.dbm)
+}
+
+// Checks whether the database condition is healthy.
+//
+// @return True if the database condition is healthy, or false if not.
+func (self *DBM) IsHealthy() bool {
+	if self.dbm == 0 {
+		return false
+	}
+	return dbm_is_healthy(self.dbm)
+}
+
+// Checks whether ordered operations are supported.
+//
+// @return True if ordered operations are supported, or false if not.
+func (self *DBM) IsOrdered() bool {
+	if self.dbm == 0 {
+		return false
+	}
+	return dbm_is_ordered(self.dbm)
+}

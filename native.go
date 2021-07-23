@@ -40,6 +40,11 @@ typedef struct {
   RES_STATUS status;
 } RES_DBM_BOOL;
 
+typedef struct {
+  TkrzwKeyValuePair* records;
+  int32_t num_records;
+} RES_DBM_RECORDS;
+
 char* copy_status_message(const char* message) {
   if (*message == '\0') {
     return NULL;
@@ -170,6 +175,30 @@ RES_STATUS do_dbm_synchronize(TkrzwDBM* dbm, bool hard, const char* params) {
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_copy_file_data(TkrzwDBM* dbm, const char* dest_path) {
+  RES_STATUS res;
+  tkrzw_dbm_copy_file_data(dbm, dest_path);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_export(TkrzwDBM* dbm, TkrzwDBM* dest_dbm) {
+  RES_STATUS res;
+  tkrzw_dbm_export(dbm, dest_dbm);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_DBM_RECORDS do_dbm_inspect(TkrzwDBM* dbm) {
+  RES_DBM_RECORDS res;
+  res.records = tkrzw_dbm_inspect(dbm, &res.num_records);
   return res;
 }
 
@@ -316,4 +345,50 @@ func dbm_synchronize(dbm uintptr, hard bool, params string) *Status {
 	res := C.do_dbm_synchronize(xdbm, C.bool(hard), xparams)
 	status := convert_status(res)
 	return status
+}
+
+func dbm_copy_file_data(dbm uintptr, dest_path string) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xdest_path := C.CString(dest_path)
+	defer C.free(unsafe.Pointer(xdest_path))
+	res := C.do_dbm_copy_file_data(xdbm, xdest_path)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_export(dbm uintptr, dest_dbm uintptr) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xdest_dbm := (*C.TkrzwDBM)(unsafe.Pointer(dest_dbm))
+	res := C.do_dbm_export(xdbm, xdest_dbm)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_inspect(dbm uintptr, records map[string]string) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	res := C.do_dbm_inspect(xdbm)
+	defer C.tkrzw_free_str_map(res.records, res.num_records)
+	rec_ptr := uintptr(unsafe.Pointer(res.records))
+	for i := C.int32_t(0); i < res.num_records; i++ {
+		elem := *(*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
+		name := C.GoStringN(elem.key_ptr, elem.key_size)
+		value := C.GoStringN(elem.value_ptr, elem.value_size)
+		records[name] = value
+		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+}
+
+func dbm_is_writable(dbm uintptr) bool {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	return bool(C.tkrzw_dbm_is_writable(xdbm))
+}
+
+func dbm_is_healthy(dbm uintptr) bool {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	return bool(C.tkrzw_dbm_is_healthy(xdbm))
+}
+
+func dbm_is_ordered(dbm uintptr) bool {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	return bool(C.tkrzw_dbm_is_ordered(xdbm))
 }

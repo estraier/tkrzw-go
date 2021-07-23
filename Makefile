@@ -1,7 +1,7 @@
 # Makefile for Tkrzw for Go
 
 PACKAGE := tkrzw-go
-VERSION := 0.1.14
+VERSION := 0.1.15
 PACKAGEDIR := $(PACKAGE)-$(VERSION)
 PACKAGETGZ := $(PACKAGE)-$(VERSION).tar.gz
 
@@ -13,6 +13,30 @@ build :
 
 test :
 	$(RUNENV) $(GOCMD) test -v
+
+run :
+	$(RUNENV) $(GOCMD) run perf.go
+
+vet :
+	$(RUNENV) $(GOCMD) vet
+
+fmt :
+	$(RUNENV) $(GOCMD) fmt
+
+clean :
+	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni
+
+dist :
+	$(MAKE) fmt
+	$(MAKE) distclean
+	rm -Rf "../$(PACKAGEDIR)" "../$(PACKAGETGZ)"
+	cd .. && cp -R tkrzw-go $(PACKAGEDIR) && \
+	  tar --exclude=".*" -cvf - $(PACKAGEDIR) | gzip -c > $(PACKAGETGZ)
+	rm -Rf "../$(PACKAGEDIR)"
+	sync ; sync
+
+distclean : clean apidocclean
+	[ ! -f example/Makefile ] || cd example && $(MAKE) clean
 
 apidoc :
 	rm -rf api-doc
@@ -34,3 +58,6 @@ apidoc :
 	    -e 's/^\(@return\) \+\(.*\)/<div class="param"><span class="tag">\1<\/span> \2<\/div>/' \
 	    -e 's/^- \(.*\)/<div class="list">\1<\/div>/' > api-doc/index.html
 	killall godoc
+
+apidocclean :
+	rm -rf api-doc

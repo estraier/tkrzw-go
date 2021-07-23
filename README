@@ -1,16 +1,3 @@
-Currently, this module is not ready for actual use.
-Currently, this module is not ready for actual use.
-Currently, this module is not ready for actual use.
-Currently, this module is not ready for actual use.
-Currently, this module is not ready for actual use.
-
-I've uploaded this module for testing.
-
-
-
-
-
-
 ===============================================================
  Go interface of Tkrzw
 ================================================================
@@ -21,6 +8,17 @@ Please read the following documents.
   CONTRIBUTING.md   - how to contribute
 
 To build the library, Go 1.14 or later version is required.
+You should install the latest version of Tkrzw to make sure the
+compatibility.
+Then, run these commands.
+
+  make
+  make test
+
+Installation is usually done implicitly by Go Modules (vgo).
+So, just write import the package "github.com/estraier/tkrzw-go"
+and use it as "tkrzw".
+See https://dbmx.net/tkrzw/api-go/ for details of the API.
 
 Thanks.
 
