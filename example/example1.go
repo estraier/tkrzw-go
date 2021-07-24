@@ -29,7 +29,7 @@ func main() {
 	dbm.Set("second", "step", true)
 	dbm.Set("third", "jump", true)
 
-	// Retrieves record values.
+	// Retrieves record values as strings.
 	fmt.Println(dbm.GetStrSimple("first", "*"))
 	fmt.Println(dbm.GetStrSimple("second", "*"))
 	fmt.Println(dbm.GetStrSimple("third", "*"))

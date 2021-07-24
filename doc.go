@@ -18,7 +18,7 @@ Whereas Tkrzw is C++ library, this package provides its Go interface.  All above
 
 DBM stores key-value pairs of strings.  Each string is represented as a byte array in Go.  Although you can also use methods with string arguments and return values, their internal representations are byte arrays.  Other types such as intergers can also be taken as parameters and they are converted into byte arrays implicitly.
 
-All classes are defined under the package "tkrzw", which can be imported in source files of application programs as "github.com/estraier/tkrzw-go".
+All identifiers are defined under the package "tkrzw", which can be imported in source files of application programs as "github.com/estraier/tkrzw-go".
 
  import "github.com/estraier/tkrzw-go"
 
@@ -48,7 +48,7 @@ The following code is a simple example to use a database, without checking error
   dbm.Set("second", "step", true)
   dbm.Set("third", "jump", true)
 
-  // Retrieves record values.
+  // Retrieves record values as strings.
   fmt.Println(dbm.GetStrSimple("first", "*"))
   fmt.Println(dbm.GetStrSimple("second", "*"))
   fmt.Println(dbm.GetStrSimple("third", "*"))
