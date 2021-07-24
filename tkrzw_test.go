@@ -16,10 +16,12 @@ package tkrzw
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"path"
 	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -190,9 +192,9 @@ func TestMiscUtils(t *testing.T) {
 		CheckTrue(t, GetMemoryCapacity() > 0)
 		CheckTrue(t, GetMemoryUsage() > 0)
 	}
-	CheckEq(t, 3042090208, PrimaryHash([]byte("abc"), (1 << 32) - 1))
+	CheckEq(t, 3042090208, PrimaryHash([]byte("abc"), (1<<32)-1))
 	CheckEq(t, uint64(16973900370012003622), PrimaryHash([]byte("abc"), ^uint64(0)))
-	CheckEq(t, 702176507, SecondaryHash([]byte("abc"), (1 << 32) - 1))
+	CheckEq(t, 702176507, SecondaryHash([]byte("abc"), (1<<32)-1))
 	CheckEq(t, uint64(1765794342254572867), SecondaryHash([]byte("abc"), ^uint64(0)))
 	CheckEq(t, 0, EditDistanceLev("", "", true))
 	CheckEq(t, 1, EditDistanceLev("ac", "abc", true))
@@ -437,9 +439,110 @@ func TestDBMIterator(t *testing.T) {
 	key, status = iter.GetKeyStr()
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckEq(t, "00000049", key)
-
 	iter.Destruct()
+	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+}
 
+func TestThread(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.tkh")
+	dbm := NewDBM()
+	status := dbm.Open(filePath, true, "truncate=true")
+	CheckTrue(t, status.Equals(StatusSuccess))
+	numIterations := 5000
+	numThreads := 5
+	recordMaps := make([]map[string]string, 0, numThreads)
+	mutexes := make([]sync.Mutex, 0, numThreads)
+	for i := 0; i < numThreads; i++ {
+		recordMaps = append(recordMaps, make(map[string]string))
+		mutexes = append(mutexes, sync.Mutex{})
+	}
+	task := func(thid int, done chan<- bool) {
+		random := rand.New(rand.NewSource(int64(thid)))
+		for i := 0; i < numIterations; i++ {
+			keyNum := random.Intn(numIterations * numThreads)
+			valueNum := random.Intn(numIterations * numThreads)
+			key := fmt.Sprintf("%d", keyNum)
+			value := fmt.Sprintf("%d", valueNum*valueNum)
+			groupIndex := keyNum % numThreads
+			recordMap := &recordMaps[groupIndex]
+			mutex := &mutexes[groupIndex]
+			mutex.Lock()
+			if random.Intn(5) == 0 {
+				gotValue, status := dbm.Get(key)
+				if status.IsOK() {
+					CheckEq(t, (*recordMap)[key], gotValue)
+				} else {
+					CheckTrue(t, status.Equals(StatusNotFoundError))
+				}
+			} else if random.Intn(5) == 0 {
+				status := dbm.Remove(key)
+				CheckTrue(t, status.Equals(StatusSuccess) || status.Equals(StatusNotFoundError))
+				delete(*recordMap, key)
+			} else {
+				CheckTrue(t, dbm.Set(key, value, true).Equals(StatusSuccess))
+				(*recordMap)[key] = value
+			}
+			mutex.Unlock()
+			if random.Intn(10) == 0 {
+				iter := dbm.MakeIterator()
+				iter.Jump(key)
+				_, _, status := iter.Get()
+				CheckTrue(t, status.Equals(StatusSuccess) || status.Equals(StatusNotFoundError))
+			}
+		}
+		done <- true
+	}
+	dones := make([]chan bool, 0)
+	for i := 0; i < numThreads; i++ {
+		done := make(chan bool)
+		go task(i, done)
+		dones = append(dones, done)
+	}
+	for _, done := range dones {
+		<-done
+	}
+	numRecords := 0
+	for _, recordMap := range recordMaps {
+		numRecords += len(recordMap)
+		for key, value := range recordMap {
+			gotValue, status := dbm.Get(key)
+			CheckTrue(t, status.Equals(StatusSuccess))
+			CheckEq(t, value, gotValue)
+		}
+	}
+	CheckEq(t, numRecords, dbm.CountSimple())
+	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+}
+
+func TestSearch(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.tks")
+	dbm := NewDBM()
+	status := dbm.Open(filePath, true, "truncate=true")
+	CheckTrue(t, status.Equals(StatusSuccess))
+	for i := 1; i <= 100; i++ {
+		key := fmt.Sprintf("%08d", i)
+		value := fmt.Sprintf("%d", i*i)
+		CheckTrue(t, dbm.Set(key, value, false).Equals(StatusSuccess))
+	}
+	CheckTrue(t, dbm.Synchronize(false, "reducer=ReduceToFirst").Equals(StatusSuccess))
+	CheckEq(t, 100, dbm.CountSimple())
+	keys := dbm.Search("contain", "99", 0)
+	CheckEq(t, 1, len(keys))
+	CheckEq(t, "00000099", keys[0])
+	keys = dbm.Search("edit", "00000100", 2)
+	CheckEq(t, 2, len(keys))
+	CheckEq(t, "00000100", keys[0])
+	CheckEq(t, "00000001", keys[1])
+	keys = dbm.Search("begin", "0000005", 0)
+	CheckEq(t, 10, len(keys))
+	CheckEq(t, "00000050", keys[0])
+	keys = dbm.Search("end", "0", 0)
+	CheckEq(t, 10, len(keys))
+	CheckEq(t, "00000010", keys[0])
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
 

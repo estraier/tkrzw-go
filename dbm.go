@@ -564,6 +564,19 @@ func (self *DBM) IsOrdered() bool {
 	return dbm_is_ordered(self.dbm)
 }
 
+// Searches the database and get keys which match a pattern.
+//
+// @param mode The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts keys whose edit distance to the binary pattern is the least.
+// @param pattern The pattern for matching.
+// @param capacity The maximum records to obtain.  0 means unlimited.
+// @return A list of keys matching the condition.
+func (self *DBM) Search(mode string, pattern string, capacity int) []string {
+	if self.dbm == 0 {
+		return make([]string, 0)
+	}
+	return dbm_search(self.dbm, mode, pattern, capacity)
+}
+
 // Makes an iterator for each record.
 //
 // @return The iterator for each record.

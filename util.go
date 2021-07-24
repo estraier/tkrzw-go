@@ -229,6 +229,4 @@ func EditDistanceLev(a string, b string, utf bool) int {
 	return edit_distance_lev(a, b, utf)
 }
 
-
-
 // END OF FILE

@@ -432,13 +432,13 @@ func get_memory_usage() int64 {
 func primary_hash(data []byte, num_buckets uint64) uint64 {
 	xdata := (*C.char)(C.CBytes(data))
 	defer C.free(unsafe.Pointer(xdata))
-	return uint64(C.tkrzw_primary_hash(xdata, C.int32_t(len(data)), C.uint64_t(num_buckets)));
+	return uint64(C.tkrzw_primary_hash(xdata, C.int32_t(len(data)), C.uint64_t(num_buckets)))
 }
 
 func secondary_hash(data []byte, num_shards uint64) uint64 {
 	xdata := (*C.char)(C.CBytes(data))
 	defer C.free(unsafe.Pointer(xdata))
-	return uint64(C.tkrzw_secondary_hash(xdata, C.int32_t(len(data)), C.uint64_t(num_shards)));
+	return uint64(C.tkrzw_secondary_hash(xdata, C.int32_t(len(data)), C.uint64_t(num_shards)))
 }
 
 func edit_distance_lev(a string, b string, utf bool) int {
@@ -778,6 +778,26 @@ func dbm_is_healthy(dbm uintptr) bool {
 func dbm_is_ordered(dbm uintptr) bool {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	return bool(C.tkrzw_dbm_is_ordered(xdbm))
+}
+
+func dbm_search(dbm uintptr, mode string, pattern string, capacity int) []string {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xmode := C.CString(mode)
+	defer C.free(unsafe.Pointer(xmode))
+	xpattern := C.CString(pattern)
+	defer C.free(unsafe.Pointer(xpattern))
+	var num_matched C.int32_t = 0
+	xkeys := C.tkrzw_dbm_search(
+		xdbm, xmode, xpattern, C.int32_t(len(pattern)), C.int32_t(capacity), &num_matched)
+	keys := make([]string, 0, num_matched)
+	key_ptr := uintptr(unsafe.Pointer(xkeys))
+	for i := C.int32_t(0); i < num_matched; i++ {
+		xkey := (*C.TkrzwStr)(unsafe.Pointer(key_ptr))
+		key := C.GoStringN(xkey.ptr, xkey.size)
+		keys = append(keys, key)
+		key_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	return keys
 }
 
 func dbm_make_iterator(dbm uintptr) uintptr {
