@@ -35,5 +35,4 @@ fmt :
 	$(RUNENV) $(GOCMD) fmt
 
 clean :
-	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni \
-	  perf
+	rm -rf perf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni

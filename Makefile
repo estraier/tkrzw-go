@@ -15,7 +15,7 @@ build :
 	@printf '# Build is OK.\n'
 	@printf '#================================================================\n'
 
-check : test runperf
+check : test runperf runwicked
 	@printf '\n'
 	@printf '#================================================================\n'
 	@printf '# Checking completed.\n'
@@ -26,6 +26,9 @@ test :
 
 runperf :
 	[ ! -f perf/Makefile ] || cd perf && $(MAKE) run
+
+runwicked :
+	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE) run
 
 vet :
 	$(RUNENV) $(GOCMD) vet
@@ -45,6 +48,9 @@ install :
 
 dist :
 	$(MAKE) fmt
+	[ ! -f perf/Makefile ] || cd perf && $(MAKE) fmt
+	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE) fmt
+	[ ! -f example/Makefile ] || cd example && $(MAKE) fmt
 	$(MAKE) distclean
 	rm -Rf "../$(PACKAGEDIR)" "../$(PACKAGETGZ)"
 	cd .. && cp -R tkrzw-go $(PACKAGEDIR) && \
@@ -54,6 +60,7 @@ dist :
 
 distclean : clean apidocclean
 	[ ! -f perf/Makefile ] || cd perf && $(MAKE) clean
+	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE) clean
 	[ ! -f example/Makefile ] || cd example && $(MAKE) clean
 
 apidoc :
