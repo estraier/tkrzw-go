@@ -178,6 +178,17 @@ RES_INT do_dbm_increment(
   return res;
 }
 
+RES_STATUS do_dbm_compare_exchange_multi(
+    TkrzwDBM* dbm, const TkrzwKeyValuePair* expected, int32_t num_expected,
+    const TkrzwKeyValuePair* desired, int32_t num_desired) {
+  RES_STATUS res;
+  tkrzw_dbm_compare_exchange_multi(dbm, expected, num_expected, desired, num_desired);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_INT do_dbm_count(TkrzwDBM* dbm) {
   RES_INT res;
   res.count = tkrzw_dbm_count(dbm);
@@ -610,6 +621,59 @@ func dbm_increment(dbm uintptr, key []byte, inc int64, init int64) (int64, *Stat
 		xdbm, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
 	status := convert_status(res.status)
 	return int64(res.count), status
+}
+
+func dbm_compare_exchange_multi(
+	dbm uintptr, expected []KeyValuePair, desired []KeyValuePair) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xexpected_size := len(expected) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xexpected := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xexpected_size + 1))))
+	defer C.tkrzw_free_str_map(xexpected, C.int32_t(len(expected)))
+	xexp_ptr := uintptr(unsafe.Pointer(xexpected))
+	for _, pair := range expected {
+		xexp := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xexp_ptr))
+		if pair.Key == nil {
+			xexp.key_ptr = nil
+			xexp.key_size = 0
+		} else {
+			xexp.key_ptr = (*C.char)(C.CBytes(pair.Key))
+			xexp.key_size = C.int32_t(len(pair.Key))
+		}
+		if pair.Value == nil {
+			xexp.value_ptr = nil
+			xexp.value_size = 0
+		} else {
+			xexp.value_ptr = (*C.char)(C.CBytes(pair.Value))
+			xexp.value_size = C.int32_t(len(pair.Value))
+		}
+		xexp_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	xdesired_size := len(desired) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xdesired := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xdesired_size + 1))))
+	defer C.tkrzw_free_str_map(xdesired, C.int32_t(len(desired)))
+	xdes_ptr := uintptr(unsafe.Pointer(xdesired))
+	for _, pair := range desired {
+		xdes := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xdes_ptr))
+		if pair.Key == nil {
+			xdes.key_ptr = nil
+			xdes.key_size = 0
+		} else {
+			xdes.key_ptr = (*C.char)(C.CBytes(pair.Key))
+			xdes.key_size = C.int32_t(len(pair.Key))
+		}
+		if pair.Value == nil {
+			xdes.value_ptr = nil
+			xdes.value_size = 0
+		} else {
+			xdes.value_ptr = (*C.char)(C.CBytes(pair.Value))
+			xdes.value_size = C.int32_t(len(pair.Value))
+		}
+		xdes_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	res := C.do_dbm_compare_exchange_multi(
+		xdbm, xexpected, C.int32_t(len(expected)), xdesired, C.int32_t(len(desired)))
+	status := convert_status(res)
+	return status
 }
 
 func dbm_count(dbm uintptr) (int64, *Status) {

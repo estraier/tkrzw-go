@@ -25,6 +25,14 @@ type DBM struct {
 	dbm uintptr
 }
 
+// A pair of the key and the value of a record.
+type KeyValuePair struct {
+	// The key.
+	Key []byte
+	// The value
+	Value []byte
+}
+
 // Makes a new DBM object.
 //
 // @return The pointer to the created database object.
@@ -230,7 +238,7 @@ func (self *DBM) GetMultiStr(keys []string) map[string]string {
 // @param key The key of the record.
 // @param value The value of the record.
 // @param overwrite Whether to overwrite the existing value.  It can be omitted and then false is set.
-// @return The result status.  If overwriting is abandoned, STATUS_DUPLICATION_ERROR is returned.
+// @return The result status.  If overwriting is abandoned, StatusDuplicationError is returned.
 func (self *DBM) Set(key interface{}, value interface{}, overwrite bool) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
@@ -269,7 +277,7 @@ func (self *DBM) SetMultiStr(records map[string]string, overwrite bool) *Status 
 // Removes a record of a key.
 //
 // @param key The key of the record.
-// @return The result status.  If there's no matching record, STATUS_NOT_FOUND_ERROR is returned.
+// @return The result status.  If there's no matching record, StatusNotFoundError is returned.
 func (self *DBM) Remove(key interface{}) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
@@ -280,7 +288,7 @@ func (self *DBM) Remove(key interface{}) *Status {
 // Removes records of keys.
 //
 // @param key The keys of the records.
-// @return:The result status.  If there are missing records, NOT_FOUND_ERROR is returned.
+// @return:The result status.  If there are missing records, StatusNotFoundError is returned.
 func (self *DBM) RemoveMulti(keys []string) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
@@ -308,7 +316,7 @@ func (self *DBM) Append(key interface{}, value interface{}, delim interface{}) *
 // @param key The key of the record.
 // @param expected The expected value.  If it is nil, no existing record is expected.
 // @param desired The desired value.  If it is nil, the record is to be removed.
-// @return The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+// @return The result status.  If the condition doesn't meet, StatusInfeasibleError is returned.
 func (self *DBM) CompareExchange(
 	key interface{}, expected interface{}, desired interface{}) *Status {
 	if self.dbm == 0 {
@@ -328,7 +336,7 @@ func (self *DBM) CompareExchange(
 // Increments the numeric value of a record.
 //
 // @param key The key of the record.
-// @param inc The incremental value.  If it is Utility.INT64MIN, the current value is not changed and a new record is not created.
+// @param inc The incremental value.  If it is INT64MIN, the current value is not changed and a new record is not created.
 // @param init The initial value.
 // @return The current value and the result status.
 func (self *DBM) Increment(key interface{}, inc interface{}, init interface{}) (int64, *Status) {
@@ -336,6 +344,18 @@ func (self *DBM) Increment(key interface{}, inc interface{}, init interface{}) (
 		return 0, NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_increment(self.dbm, ToByteArray(key), ToInt(inc), ToInt(init))
+}
+
+// Compares the values of records and exchanges if the condition meets.
+//
+// @param expected A sequence of pairs of the record keys and their expected values.  If the value is nil, no existing record is expected.
+// @param desired A sequence of pairs of the record keys and their desired values.  If the value is nil, the record is to be removed.
+// @return The result status.  If the condition doesn't meet, StatusInfeasibleError is returned.
+func (self *DBM) CompareExchangeMulti(expected []KeyValuePair, desired []KeyValuePair) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_compare_exchange_multi(self.dbm, expected, desired)
 }
 
 // Gets the number of records.

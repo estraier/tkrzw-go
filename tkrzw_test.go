@@ -289,14 +289,29 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, 105, inc_value)
 	CheckTrue(t, dbm.Remove("num").Equals(StatusSuccess))
 	records := map[string]string{"one": "first", "two": "second"}
-	CheckTrue(t, dbm.Set("one", "first", false).IsOK())
-	CheckTrue(t, dbm.Set("two", "second", false).IsOK())
+	CheckTrue(t, dbm.SetMultiStr(records, false).Equals(StatusSuccess))
 	keys := []string{"one", "two", "three"}
 	records = dbm.GetMultiStr(keys)
 	CheckEq(t, 2, len(records))
 	CheckEq(t, "first", records["one"])
 	CheckEq(t, "second", records["two"])
 	CheckTrue(t, dbm.RemoveMulti(keys).Equals(StatusNotFoundError))
+	set1 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte(nil)},
+		KeyValuePair{[]byte("two"), []byte(nil)}}
+	set2 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte("ichi")},
+		KeyValuePair{[]byte("two"), []byte("ni")}}
+	set3 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte("uno")},
+		KeyValuePair{[]byte("two"), []byte("dos")}}
+	CheckTrue(t, dbm.CompareExchangeMulti(set1, set2).Equals(StatusSuccess))
+	CheckEq(t, "ichi", dbm.GetSimple("one", "*"))
+	CheckEq(t, "ni", dbm.GetSimple("two", "*"))
+	CheckTrue(t, dbm.CompareExchangeMulti(set1, set2).Equals(StatusInfeasibleError))
+	CheckTrue(t, dbm.CompareExchangeMulti(set2, set3).Equals(StatusSuccess))
+	CheckEq(t, "uno", dbm.GetSimple("one", "*"))
+	CheckEq(t, "dos", dbm.GetSimple("two", "*"))
+	CheckTrue(t, dbm.CompareExchangeMulti(set3, set1).Equals(StatusSuccess))
+	CheckEq(t, "*", dbm.GetSimple("one", "*"))
+	CheckEq(t, "*", dbm.GetSimple("two", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
 	fileSize, status := dbm.GetFileSize()
 	CheckTrue(t, status.Equals(StatusSuccess))
