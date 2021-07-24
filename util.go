@@ -188,4 +188,12 @@ func ToFloat(value interface{}) float64 {
 	return 0.0
 }
 
+func GetMemoryCapacity() int64 {
+	return get_memory_capacity()
+}
+
+func GetMemoryUsage() int64 {
+	return get_memory_usage()
+}
+
 // END OF FILE

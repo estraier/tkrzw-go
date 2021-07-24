@@ -399,10 +399,23 @@ import (
 	"unsafe"
 )
 
+// The package version numbers.
 var VERSION string
+
+// The recognized OS name.
+var OS_NAME string
 
 func init() {
 	VERSION = C.GoString(C.TKRZW_PACKAGE_VERSION)
+	OS_NAME = C.GoString(C.TKRZW_OS_NAME)
+}
+
+func get_memory_capacity() int64 {
+	return int64(C.tkrzw_get_memory_capacity())
+}
+
+func get_memory_usage() int64 {
+	return int64(C.tkrzw_get_memory_usage())
 }
 
 func convert_status(res C.RES_STATUS) *Status {

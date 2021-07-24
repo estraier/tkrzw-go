@@ -185,6 +185,13 @@ func TestToFloat(t *testing.T) {
 	CheckEq(t, -255.5, ToFloat(float64(-255.5)))
 }
 
+func TestMiscUtils(t *testing.T) {
+	if OS_NAME == "Linux" {
+		CheckTrue(t, GetMemoryCapacity() > 0)
+		CheckTrue(t, GetMemoryUsage() > 0)
+	}
+}
+
 func TestStatus(t *testing.T) {
 	s := NewStatus()
 	CheckEq(t, StatusSuccess, s.GetCode())
@@ -217,6 +224,7 @@ func TestStatus(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	CheckTrue(t, len(VERSION) > 3)
+	CheckTrue(t, len(OS_NAME) > 0)
 }
 
 func TestDBMBasic(t *testing.T) {

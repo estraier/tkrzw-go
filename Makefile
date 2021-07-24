@@ -36,6 +36,7 @@ dist :
 	sync ; sync
 
 distclean : clean apidocclean
+	[ ! -f perf/Makefile ] || cd perf && $(MAKE) clean
 	[ ! -f example/Makefile ] || cd example && $(MAKE) clean
 
 apidoc :

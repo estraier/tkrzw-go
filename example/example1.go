@@ -50,3 +50,5 @@ func main() {
 	// Closes the database.
 	dbm.Close()
 }
+
+// END OF FILE

@@ -1,13 +1,13 @@
-# Makefile for sample programs for Tkrzw
+# Makefile for the performance checker for Tkrzw
 
 GOCMD := go
 RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
 
 build :
-	$(RUNENV) $(GOCMD) build example1.go
+	$(RUNENV) $(GOCMD) build perf.go
 
 run :
-	$(RUNENV) $(GOCMD) run example1.go
+	$(RUNENV) $(GOCMD) run perf.go
 
 vet :
 	$(RUNENV) $(GOCMD) vet
@@ -17,4 +17,4 @@ fmt :
 
 clean :
 	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni \
-	  example1
+	  perf
