@@ -10,12 +10,22 @@ RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
 
 build :
 	$(RUNENV) $(GOCMD) build
+	@printf '\n'
+	@printf '#================================================================\n'
+	@printf '# Build is OK.\n'
+	@printf '#================================================================\n'
+
+check : test runperf
+	@printf '\n'
+	@printf '#================================================================\n'
+	@printf '# Checking completed.\n'
+	@printf '#================================================================\n'
 
 test :
 	$(RUNENV) $(GOCMD) test -v
 
-run :
-	$(RUNENV) $(GOCMD) run perf.go
+runperf :
+	[ ! -f perf/Makefile ] || cd perf && $(MAKE) run
 
 vet :
 	$(RUNENV) $(GOCMD) vet
@@ -25,6 +35,13 @@ fmt :
 
 clean :
 	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni
+
+install :
+	@printf '\n'
+	@printf '#================================================================\n'
+	@printf '# Installation is not necessary.\n'
+	@printf '# Just import "github.com/estraier/tkrzw-go" in your Go code.\n'
+	@printf '#================================================================\n'
 
 dist :
 	$(MAKE) fmt

@@ -379,7 +379,7 @@ func TestDBMIterator(t *testing.T) {
 	CheckTrue(t, status.Equals(StatusSuccess))
 	for i := 1; i <= 100; i++ {
 		key := fmt.Sprintf("%08d", i)
-		value := fmt.Sprintf("%d", i * i)
+		value := fmt.Sprintf("%d", i*i)
 		CheckTrue(t, dbm.Set(key, value, false).Equals(StatusSuccess))
 	}
 	CheckEq(t, 100, dbm.CountSimple())
@@ -415,12 +415,7 @@ func TestDBMIterator(t *testing.T) {
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckEq(t, "00000049", key)
 
-
-	
-
-
 	iter.Destruct()
-
 
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }

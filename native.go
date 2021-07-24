@@ -825,7 +825,7 @@ func dbm_iter_set(iter uintptr, value []byte) *Status {
 
 func dbm_iter_remove(iter uintptr) *Status {
 	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
-	res := C.do_dbm_iter_remove(xiter);
+	res := C.do_dbm_iter_remove(xiter)
 	status := convert_status(res)
 	return status
 }

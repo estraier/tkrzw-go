@@ -14,11 +14,11 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"github.com/estraier/tkrzw-go"
-	"time"
 	"math/rand"
+	"time"
 )
 
 var flagPath = flag.String("path", "", "the file path of the database")
@@ -45,21 +45,21 @@ func main() {
 	dbm.Open(path, true, openParams).OrDie()
 	fmt.Println("Setting:")
 	startTime := time.Now()
-	setter := func (thid int, done chan<- bool) {
+	setter := func(thid int, done chan<- bool) {
 		random := rand.New(rand.NewSource(int64(thid)))
 		for i := 0; i < numIterations; i++ {
 			var keyNum int
 			if isRandom {
 				keyNum = random.Intn(numIterations * numThreads)
 			} else {
-				keyNum = thid * numIterations + i
+				keyNum = thid*numIterations + i
 			}
 			key := fmt.Sprintf("%08d", keyNum)
 			dbm.Set(key, key, true).OrDie()
 			seq := i + 1
-			if thid == 0 && seq % (numIterations / 500) == 0 {
+			if thid == 0 && seq%(numIterations/500) == 0 {
 				fmt.Print(".")
-				if seq % (numIterations / 10) == 0 {
+				if seq%(numIterations/10) == 0 {
 					fmt.Printf(" (%08d)\n", seq)
 				}
 			}
@@ -72,7 +72,7 @@ func main() {
 		go setter(i, done)
 		dones = append(dones, done)
 	}
-	for _, done := range(dones) {
+	for _, done := range dones {
 		<-done
 	}
 	dbm.Synchronize(false, "").OrDie()
@@ -80,19 +80,19 @@ func main() {
 	elapsed := endTime.Sub(startTime).Seconds()
 	memUsage := tkrzw.GetMemoryUsage() - startMemUsage
 	fmt.Printf("Setting done: num_records=%d file_size=%d time=%.3f qps=%.0f mem=%d\n",
-    dbm.CountSimple(), dbm.GetFileSizeSimple(),
-    elapsed, float64(numIterations * numThreads) / elapsed, memUsage)
+		dbm.CountSimple(), dbm.GetFileSizeSimple(),
+		elapsed, float64(numIterations*numThreads)/elapsed, memUsage)
 	fmt.Println()
 	fmt.Println("Getting:")
 	startTime = time.Now()
-	getter := func (thid int, done chan<- bool) {
+	getter := func(thid int, done chan<- bool) {
 		random := rand.New(rand.NewSource(int64(thid)))
 		for i := 0; i < numIterations; i++ {
 			var keyNum int
 			if isRandom {
 				keyNum = random.Intn(numIterations * numThreads)
 			} else {
-				keyNum = thid * numIterations + i
+				keyNum = thid*numIterations + i
 			}
 			key := fmt.Sprintf("%08d", keyNum)
 			_, status := dbm.Get(key)
@@ -100,9 +100,9 @@ func main() {
 				panic(status.String())
 			}
 			seq := i + 1
-			if thid == 0 && seq % (numIterations / 500) == 0 {
+			if thid == 0 && seq%(numIterations/500) == 0 {
 				fmt.Print(".")
-				if seq % (numIterations / 10) == 0 {
+				if seq%(numIterations/10) == 0 {
 					fmt.Printf(" (%08d)\n", seq)
 				}
 			}
@@ -115,26 +115,26 @@ func main() {
 		go getter(i, done)
 		dones = append(dones, done)
 	}
-	for _, done := range(dones) {
+	for _, done := range dones {
 		<-done
 	}
 	endTime = time.Now()
 	elapsed = endTime.Sub(startTime).Seconds()
 	memUsage = tkrzw.GetMemoryUsage() - startMemUsage
 	fmt.Printf("Getting done: num_records=%d file_size=%d time=%.3f qps=%.0f mem=%d\n",
-    dbm.CountSimple(), dbm.GetFileSizeSimple(),
-    elapsed, float64(numIterations * numThreads) / elapsed, memUsage)
+		dbm.CountSimple(), dbm.GetFileSizeSimple(),
+		elapsed, float64(numIterations*numThreads)/elapsed, memUsage)
 	fmt.Println()
 	fmt.Println("Removing:")
 	startTime = time.Now()
-	remover := func (thid int, done chan<- bool) {
+	remover := func(thid int, done chan<- bool) {
 		random := rand.New(rand.NewSource(int64(thid)))
 		for i := 0; i < numIterations; i++ {
 			var keyNum int
 			if isRandom {
 				keyNum = random.Intn(numIterations * numThreads)
 			} else {
-				keyNum = thid * numIterations + i
+				keyNum = thid*numIterations + i
 			}
 			key := fmt.Sprintf("%08d", keyNum)
 			status := dbm.Remove(key)
@@ -142,9 +142,9 @@ func main() {
 				panic(status.String())
 			}
 			seq := i + 1
-			if thid == 0 && seq % (numIterations / 500) == 0 {
+			if thid == 0 && seq%(numIterations/500) == 0 {
 				fmt.Print(".")
-				if seq % (numIterations / 10) == 0 {
+				if seq%(numIterations/10) == 0 {
 					fmt.Printf(" (%08d)\n", seq)
 				}
 			}
@@ -157,15 +157,15 @@ func main() {
 		go remover(i, done)
 		dones = append(dones, done)
 	}
-	for _, done := range(dones) {
+	for _, done := range dones {
 		<-done
 	}
 	endTime = time.Now()
 	elapsed = endTime.Sub(startTime).Seconds()
 	memUsage = tkrzw.GetMemoryUsage() - startMemUsage
 	fmt.Printf("Removing done: num_records=%d file_size=%d time=%.3f qps=%.0f mem=%d\n",
-    dbm.CountSimple(), dbm.GetFileSizeSimple(),
-    elapsed, float64(numIterations * numThreads) / elapsed, memUsage)
+		dbm.CountSimple(), dbm.GetFileSizeSimple(),
+		elapsed, float64(numIterations*numThreads)/elapsed, memUsage)
 	fmt.Println()
 	dbm.Close().OrDie()
 }

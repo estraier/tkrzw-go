@@ -10,15 +10,17 @@ Please read the following documents.
 To build the library, Go 1.14 or later version is required.
 You should install the latest version of Tkrzw to make sure the
 compatibility.
-Then, run these commands.
+
+If you are a user of Tkrzw, just import "github.com/estraier/tkrzw-go"
+in your Go code and use the package as "tkrzw".  No need to download
+this repository explicitly.
+
+See https://dbmx.net/tkrzw/api-go/ for details of the API.
+
+If you are a developer of Tkrzw, run these commands.
 
   make
-  make test
-
-Installation is usually done implicitly by Go Modules (vgo).
-So, just write an import directive for the package
-"github.com/estraier/tkrzw-go" and use it as "tkrzw".
-See https://dbmx.net/tkrzw/api-go/ for details of the API.
+  make check
 
 Thanks.
 
