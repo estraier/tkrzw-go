@@ -190,6 +190,14 @@ func TestMiscUtils(t *testing.T) {
 		CheckTrue(t, GetMemoryCapacity() > 0)
 		CheckTrue(t, GetMemoryUsage() > 0)
 	}
+	CheckEq(t, 3042090208, PrimaryHash([]byte("abc"), (1 << 32) - 1))
+	CheckEq(t, uint64(16973900370012003622), PrimaryHash([]byte("abc"), ^uint64(0)))
+	CheckEq(t, 702176507, SecondaryHash([]byte("abc"), (1 << 32) - 1))
+	CheckEq(t, uint64(1765794342254572867), SecondaryHash([]byte("abc"), ^uint64(0)))
+	CheckEq(t, 0, EditDistanceLev("", "", true))
+	CheckEq(t, 1, EditDistanceLev("ac", "abc", true))
+	CheckEq(t, 1, EditDistanceLev("あいう", "あう", true))
+	CheckEq(t, 3, EditDistanceLev("あいう", "あう", false))
 }
 
 func TestStatus(t *testing.T) {

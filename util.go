@@ -188,12 +188,47 @@ func ToFloat(value interface{}) float64 {
 	return 0.0
 }
 
+// Gets the memory capacity of the platform.
+//
+// @return The memory capacity of the platform in bytes, or -1 on failure.
 func GetMemoryCapacity() int64 {
 	return get_memory_capacity()
 }
 
+// Gets the current memory usage of the process.
+//
+// @return The current memory usage of the process in bytes, or -1 on failure.
 func GetMemoryUsage() int64 {
 	return get_memory_usage()
 }
+
+// Primary hash function for the hash database.
+//
+// @param data The data to calculate the hash value for.
+// @param num_buckets: The number of buckets of the hash table.
+func PrimaryHash(data []byte, num_buckets uint64) uint64 {
+	return primary_hash(data, num_buckets)
+}
+
+// Secondary hash function for sharding.
+//
+// @param data The data to calculate the hash value for.
+// @aram num_shards The number of shards.
+// @return The hash value.
+func SecondaryHash(data []byte, num_shards uint64) uint64 {
+	return secondary_hash(data, num_shards)
+}
+
+// Gets the Levenshtein edit distance of two Unicode strings.
+//
+// @param a A string.
+// @param b The other string.
+// @param utf If true, text is treated as UTF-8.  If false, it is treated as raw bytes.
+// @return The Levenshtein edit distance of the two strings.
+func EditDistanceLev(a string, b string, utf bool) int {
+	return edit_distance_lev(a, b, utf)
+}
+
+
 
 // END OF FILE

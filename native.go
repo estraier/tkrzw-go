@@ -418,6 +418,26 @@ func get_memory_usage() int64 {
 	return int64(C.tkrzw_get_memory_usage())
 }
 
+func primary_hash(data []byte, num_buckets uint64) uint64 {
+	xdata := (*C.char)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(xdata))
+	return uint64(C.tkrzw_primary_hash(xdata, C.int32_t(len(data)), C.uint64_t(num_buckets)));
+}
+
+func secondary_hash(data []byte, num_shards uint64) uint64 {
+	xdata := (*C.char)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(xdata))
+	return uint64(C.tkrzw_secondary_hash(xdata, C.int32_t(len(data)), C.uint64_t(num_shards)));
+}
+
+func edit_distance_lev(a string, b string, utf bool) int {
+	xa := C.CString(a)
+	defer C.free(unsafe.Pointer(xa))
+	xb := C.CString(b)
+	defer C.free(unsafe.Pointer(xb))
+	return int(C.tkrzw_str_edit_distance_lev(xa, xb, C.bool(utf)))
+}
+
 func convert_status(res C.RES_STATUS) *Status {
 	if res.message == nil {
 		return NewStatus1(StatusCode(res.code))
