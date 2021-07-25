@@ -395,7 +395,7 @@ func (self *DBM) CompareExchange(
 // Increments the numeric value of a record.
 //
 // @param key The key of the record.
-// @param inc The incremental value.  If it is INT64MIN, the current value is not changed and a new record is not created.
+// @param inc The incremental value.  If it is Int64Min, the current value is not changed and a new record is not created.
 // @param init The initial value.
 // @return The current value and the result status.
 func (self *DBM) Increment(key interface{}, inc interface{}, init interface{}) (int64, *Status) {

@@ -440,10 +440,18 @@ var OSName string
 // The recognized OS name.
 var PageSize int
 
+// The minimum value of int64. */
+var Int64Min int64
+
+// The minimum value of int64. */
+var Int64Max int64
+
 func init() {
 	Version = C.GoString(C.TKRZW_PACKAGE_VERSION)
 	OSName = C.GoString(C.TKRZW_OS_NAME)
 	PageSize = int(C.TKRZW_PAGE_SIZE)
+	Int64Min = int64(C.TKRZW_INT64MIN)
+	Int64Max = int64(C.TKRZW_INT64MAX)
 }
 
 func get_memory_capacity() int64 {

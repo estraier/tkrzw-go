@@ -237,6 +237,8 @@ func TestVersion(t *testing.T) {
 	CheckTrue(t, len(Version) > 3)
 	CheckTrue(t, len(OSName) > 0)
 	CheckTrue(t, PageSize > 0)
+	CheckEq(t, int64(^uint64(0)>>1)*-1-1, Int64Min)
+	CheckEq(t, ^uint64(0)>>1, Int64Max)
 }
 
 func TestDBMBasic(t *testing.T) {
