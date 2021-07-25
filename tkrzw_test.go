@@ -188,7 +188,7 @@ func TestToFloat(t *testing.T) {
 }
 
 func TestMiscUtils(t *testing.T) {
-	if OS_NAME == "Linux" {
+	if OSName == "Linux" {
 		CheckTrue(t, GetMemoryCapacity() > 0)
 		CheckTrue(t, GetMemoryUsage() > 0)
 	}
@@ -233,8 +233,9 @@ func TestStatus(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	CheckTrue(t, len(VERSION) > 3)
-	CheckTrue(t, len(OS_NAME) > 0)
+	CheckTrue(t, len(Version) > 3)
+	CheckTrue(t, len(OSName) > 0)
+	CheckTrue(t, PageSize > 0)
 }
 
 func TestDBMBasic(t *testing.T) {
@@ -290,6 +291,30 @@ func TestDBMBasic(t *testing.T) {
 	CheckTrue(t, status.Equals(StatusSuccess))
 	CheckEq(t, 105, inc_value)
 	CheckTrue(t, dbm.Remove("num").Equals(StatusSuccess))
+	old_value, status := dbm.SetAndGet("zero", "nil", false)
+	CheckTrue(t, old_value == nil)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	old_value, status = dbm.SetAndGet("zero", "nothing", false)
+	CheckEq(t, "nil", old_value)
+	CheckTrue(t, status.Equals(StatusDuplicationError))
+	old_value_str, status := dbm.SetAndGetStr("zero", "void", false)
+	CheckEq(t, "nil", *old_value_str)
+	CheckTrue(t, status.Equals(StatusDuplicationError))
+	old_value, status = dbm.RemoveAndGet("zero")
+	CheckEq(t, "nil", old_value)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	old_value, status = dbm.RemoveAndGet("zero")
+	CheckTrue(t, old_value == nil)
+	CheckTrue(t, status.Equals(StatusNotFoundError))
+	old_value_str, status = dbm.SetAndGetStr("zero", "void", false)
+	CheckTrue(t, old_value == nil)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	old_value_str, status = dbm.RemoveAndGetStr("zero")
+	CheckEq(t, "void", *old_value_str)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	old_value_str, status = dbm.RemoveAndGetStr("zero")
+	CheckTrue(t, old_value == nil)
+	CheckTrue(t, status.Equals(StatusNotFoundError))
 	records := map[string]string{"one": "first", "two": "second"}
 	CheckTrue(t, dbm.SetMultiStr(records, false).Equals(StatusSuccess))
 	keys := []string{"one", "two", "three"}

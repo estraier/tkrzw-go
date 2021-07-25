@@ -116,6 +116,18 @@ RES_STATUS do_dbm_set(
   return res;
 }
 
+RES_VALUE do_dbm_set_and_get(
+    TkrzwDBM* dbm, const char* key_ptr, int32_t key_size,
+    const char* value_ptr, int32_t value_size, bool overwrite) {
+  RES_VALUE res;
+  res.value_ptr = tkrzw_dbm_set_and_get(
+      dbm, key_ptr, key_size, value_ptr, value_size, overwrite, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_STATUS do_dbm_set_multi(
     TkrzwDBM* dbm, const TkrzwKeyValuePair* records, int32_t num_records, bool overwrite) {
   RES_STATUS res;
@@ -132,6 +144,15 @@ RES_STATUS do_dbm_remove(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_VALUE do_dbm_remove_and_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
+  RES_VALUE res;
+  res.value_ptr = tkrzw_dbm_remove_and_get(dbm, key_ptr, key_size, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
   return res;
 }
 
@@ -411,14 +432,18 @@ import (
 )
 
 // The package version numbers.
-var VERSION string
+var Version string
 
 // The recognized OS name.
-var OS_NAME string
+var OSName string
+
+// The recognized OS name.
+var PageSize int
 
 func init() {
-	VERSION = C.GoString(C.TKRZW_PACKAGE_VERSION)
-	OS_NAME = C.GoString(C.TKRZW_OS_NAME)
+	Version = C.GoString(C.TKRZW_PACKAGE_VERSION)
+	OSName = C.GoString(C.TKRZW_OS_NAME)
+	PageSize = int(C.TKRZW_PAGE_SIZE)
 }
 
 func get_memory_capacity() int64 {
@@ -528,6 +553,23 @@ func dbm_set(dbm uintptr, key []byte, value []byte, overwrite bool) *Status {
 	return status
 }
 
+func dbm_set_and_get(dbm uintptr, key []byte, value []byte, overwrite bool) ([]byte, *Status) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	res := C.do_dbm_set_and_get(xdbm, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)), C.bool(overwrite))
+	var old_value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		old_value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return old_value, status
+}
+
 func dbm_set_multi(dbm uintptr, records map[string][]byte, overwrite bool) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
@@ -554,6 +596,20 @@ func dbm_remove(dbm uintptr, key []byte) *Status {
 	res := C.do_dbm_remove(xdbm, xkey_ptr, C.int32_t(len(key)))
 	status := convert_status(res)
 	return status
+}
+
+func dbm_remove_and_get(dbm uintptr, key []byte) ([]byte, *Status) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	res := C.do_dbm_remove_and_get(xdbm, xkey_ptr, C.int32_t(len(key)))
+	var old_value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		old_value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return old_value, status
 }
 
 func dbm_remove_multi(dbm uintptr, keys []string) *Status {

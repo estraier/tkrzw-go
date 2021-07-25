@@ -237,13 +237,45 @@ func (self *DBM) GetMultiStr(keys []string) map[string]string {
 //
 // @param key The key of the record.
 // @param value The value of the record.
-// @param overwrite Whether to overwrite the existing value.  It can be omitted and then false is set.
+// @param overwrite Whether to overwrite the existing value.
 // @return The result status.  If overwriting is abandoned, StatusDuplicationError is returned.
 func (self *DBM) Set(key interface{}, value interface{}, overwrite bool) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_set(self.dbm, ToByteArray(key), ToByteArray(value), overwrite)
+}
+
+// Sets a record and get the old value.
+//
+// @param key: The key of the record.
+// @param value The value of the record.
+// @param overwrite Whether to overwrite the existing value.
+// @return The old value and the result status.
+func (self *DBM) SetAndGet(key interface{}, value interface{}, overwrite bool) ([]byte, *Status) {
+	if self.dbm == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_set_and_get(self.dbm, ToByteArray(key), ToByteArray(value), overwrite)
+}
+
+// Sets a record and get the old value, as a string.
+//
+// @param key: The key of the record.
+// @param value The value of the record.
+// @param overwrite Whether to overwrite the existing value.
+// @return The old value and the result status.
+func (self *DBM) SetAndGetStr(key interface{}, value interface{},
+	overwrite bool) (*string, *Status) {
+	if self.dbm == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	old_value, status := dbm_set_and_get(self.dbm, ToByteArray(key), ToByteArray(value), overwrite)
+	if old_value != nil {
+		old_value_str := string(old_value)
+		return &old_value_str, status
+	}
+	return nil, status
 }
 
 // Sets multiple records of the keyword arguments.
@@ -283,6 +315,33 @@ func (self *DBM) Remove(key interface{}) *Status {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_remove(self.dbm, ToByteArray(key))
+}
+
+// Removes a record and get the value.
+//
+// @param key The key of the record.
+// @return The old value and the result status.
+func (self *DBM) RemoveAndGet(key interface{}) ([]byte, *Status) {
+	if self.dbm == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_remove_and_get(self.dbm, ToByteArray(key))
+}
+
+// Removes a record and get the value, as a string.
+//
+// @param key The key of the record.
+// @return The old value and the result status.
+func (self *DBM) RemoveAndGetStr(key interface{}) (*string, *Status) {
+	if self.dbm == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	old_value, status := dbm_remove_and_get(self.dbm, ToByteArray(key))
+	if old_value != nil {
+		old_value_str := string(old_value)
+		return &old_value_str, status
+	}
+	return nil, status
 }
 
 // Removes records of keys.
