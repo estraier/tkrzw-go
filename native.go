@@ -296,6 +296,33 @@ RES_STATUS do_dbm_export(TkrzwDBM* dbm, TkrzwDBM* dest_dbm) {
   return res;
 }
 
+RES_STATUS do_dbm_export_records_to_flat_records(TkrzwDBM* dbm, TkrzwFile* dest_file) {
+  RES_STATUS res;
+  tkrzw_dbm_export_records_to_flat_records(dbm, dest_file);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_import_records_from_flat_records(TkrzwDBM* dbm, TkrzwFile* src_file) {
+  RES_STATUS res;
+  tkrzw_dbm_import_records_from_flat_records(dbm, src_file);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_export_keys_as_lines(TkrzwDBM* dbm, TkrzwFile* dest_file) {
+  RES_STATUS res;
+  tkrzw_dbm_export_keys_as_lines(dbm, dest_file);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_MAP do_dbm_inspect(TkrzwDBM* dbm) {
   RES_MAP res;
   res.records = tkrzw_dbm_inspect(dbm, &res.num_records);
@@ -897,6 +924,30 @@ func dbm_export(dbm uintptr, dest_dbm uintptr) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xdest_dbm := (*C.TkrzwDBM)(unsafe.Pointer(dest_dbm))
 	res := C.do_dbm_export(xdbm, xdest_dbm)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_export_records_to_flat_records(dbm uintptr, dest_file uintptr) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xdest_file := (*C.TkrzwFile)(unsafe.Pointer(dest_file))
+	res := C.do_dbm_export_records_to_flat_records(xdbm, xdest_file)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_import_records_from_flat_records(dbm uintptr, src_file uintptr) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xsrc_file := (*C.TkrzwFile)(unsafe.Pointer(src_file))
+	res := C.do_dbm_import_records_from_flat_records(xdbm, xsrc_file)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_export_keys_as_lines(dbm uintptr, dest_file uintptr) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xdest_file := (*C.TkrzwFile)(unsafe.Pointer(dest_file))
+	res := C.do_dbm_export_keys_as_lines(xdbm, xdest_file)
 	status := convert_status(res)
 	return status
 }

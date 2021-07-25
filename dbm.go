@@ -562,18 +562,64 @@ func (self *DBM) CopyFileData(destPath string) *Status {
 
 // Exports all records to another database.
 //
-// @param destDbm The destination database.
+// @param destDBM The destination database.
 // @return The result status.
-func (self *DBM) Export(destDbm *DBM) *Status {
-	if self.dbm == 0 || destDbm.dbm == 0 {
+func (self *DBM) Export(destDBM *DBM) *Status {
+	if self.dbm == 0 || destDBM.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	return dbm_export(self.dbm, destDbm.dbm)
+	return dbm_export(self.dbm, destDBM.dbm)
+}
+
+// Exports all records of a database to a flat record file.
+//
+// @param file: The file object to write records in.
+// @return The result status.
+//
+// A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
+func (self *DBM) ExportRecordsToFlatRecords(destFile *File) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	if destFile.file == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened file")
+	}
+	return dbm_export_records_to_flat_records(self.dbm, destFile.file)
+}
+
+// Imports records to a database from a flat record file.
+//
+// @param file The file object to read records from.
+// @return The result status.
+func (self *DBM) ImportRecordsFromFlatRecords(srcFile *File) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	if srcFile.file == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened file")
+	}
+	return dbm_import_records_from_flat_records(self.dbm, srcFile.file)
+}
+
+// Exports the keys of all records as lines to a text file.
+//
+// @param file The file object to write keys in.
+// @return The result status.
+//
+// As the exported text file is smaller than the database file, scanning the text file by the search method is often faster than scanning the whole database.
+func (self *DBM) ExportKeysAsLines(destFile *File) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	if destFile.file == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened file")
+	}
+	return dbm_export_keys_as_lines(self.dbm, destFile.file)
 }
 
 // Inspects the database.
 //
-// return: A map of property names and their values.
+// return A map of property names and their values.
 func (self *DBM) Inspect() map[string]string {
 	records := make(map[string]string)
 	if self.dbm == 0 {

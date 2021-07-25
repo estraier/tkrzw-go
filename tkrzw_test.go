@@ -544,6 +544,34 @@ func TestDBMThread(t *testing.T) {
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
 
+func TestDBMExport(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.tkh")
+	copyPath := path.Join(tmpDir, "casket-copy.dat")
+	dbm := NewDBM()
+	CheckTrue(t, dbm.Open(filePath, true, "truncate=true").Equals(StatusSuccess))
+	CheckTrue(t, dbm.Set("one", "first", true).Equals(StatusSuccess))
+	CheckTrue(t, dbm.Set("two", "second", true).Equals(StatusSuccess))
+	CheckEq(t, 2, dbm.CountSimple())
+	copyFile := NewFile()
+	CheckTrue(t, copyFile.Open(copyPath, true, "truncate=true").Equals(StatusSuccess))
+	CheckTrue(t, dbm.ExportRecordsToFlatRecords(copyFile).Equals(StatusSuccess))
+	CheckTrue(t, dbm.Clear().Equals(StatusSuccess))
+	CheckEq(t, 0, dbm.CountSimple())
+	CheckTrue(t, dbm.ImportRecordsFromFlatRecords(copyFile).Equals(StatusSuccess))
+	CheckEq(t, 2, dbm.CountSimple())
+	CheckEq(t, "first", dbm.GetSimple("one", "*"))
+	CheckEq(t, "second", dbm.GetSimple("two", "*"))
+	CheckTrue(t, copyFile.Close().Equals(StatusSuccess))
+	CheckTrue(t, copyFile.Open(copyPath, true, "truncate=true").Equals(StatusSuccess))
+	CheckTrue(t, dbm.ExportKeysAsLines(copyFile).Equals(StatusSuccess))
+	lines := copyFile.Search("contain", "o", 0)
+	CheckEq(t, 2, len(lines))
+	CheckTrue(t, copyFile.Close().Equals(StatusSuccess))
+	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+}
+
 func TestDBMSearch(t *testing.T) {
 	tmpDir := MakeTempDir()
 	defer os.RemoveAll(tmpDir)
