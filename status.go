@@ -134,6 +134,13 @@ func (self *Status) String() string {
 	return expr
 }
 
+// Makes a string representing the status, to be an error.
+//
+// @return The string representing the status.
+func (self *Status) Error() string {
+	return self.String()
+}
+
 // Gets the status code.
 //
 // @return The status code.

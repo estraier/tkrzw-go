@@ -218,6 +218,7 @@ func TestStatus(t *testing.T) {
 	CheckEq(t, StatusNotFoundError, s.GetCode())
 	CheckEq(t, "foobar", s.GetMessage())
 	CheckEq(t, "NOT_FOUND_ERROR: foobar", s)
+	CheckEq(t, "NOT_FOUND_ERROR: foobar", s.Error())
 	CheckTrue(t, s.Equals(s))
 	CheckTrue(t, s.Equals(*s))
 	CheckTrue(t, s.Equals(StatusNotFoundError))
