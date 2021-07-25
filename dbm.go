@@ -19,7 +19,7 @@ import (
 
 // Polymorphic database manager.
 //
-// All operations except for open and close are thread-safe; Multiple threads can access the same database concurrently.  You can specify a data structure when you call the "Open" method.  Every opened database must be closed explicitly by the "Close" method to avoid data corruption.
+// All operations except for "Open" and "Close" are thread-safe; Multiple threads can access the same database concurrently.  You can specify a data structure when you call the "Open" method.  Every opened database must be closed explicitly by the "Close" method to avoid data corruption.
 type DBM struct {
 	// Pointer to the internal object.
 	dbm uintptr
@@ -47,8 +47,8 @@ func (self *DBM) String() string {
 	if self.dbm == 0 {
 		return fmt.Sprintf("#<tkrzw.DBM:%p:unopened>", &self)
 	}
-	count, _ := dbm_count(self.dbm)
 	path, _ := dbm_get_file_path(self.dbm)
+	count, _ := dbm_count(self.dbm)
 	return fmt.Sprintf("#<tkrzw.DBM:%s:%d>", path, count)
 }
 

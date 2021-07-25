@@ -187,6 +187,14 @@ func TestToFloat(t *testing.T) {
 	CheckEq(t, -255.5, ToFloat(float64(-255.5)))
 }
 
+func TestConstants(t *testing.T) {
+	CheckTrue(t, len(Version) > 3)
+	CheckTrue(t, len(OSName) > 0)
+	CheckTrue(t, PageSize > 0)
+	CheckEq(t, int64(^uint64(0)>>1)*-1-1, Int64Min)
+	CheckEq(t, ^uint64(0)>>1, Int64Max)
+}
+
 func TestMiscUtils(t *testing.T) {
 	if OSName == "Linux" {
 		CheckTrue(t, GetMemoryCapacity() > 0)
@@ -231,14 +239,6 @@ func TestStatus(t *testing.T) {
 	s = NewStatus2(StatusNotFoundError, "bazquux")
 	CheckEq(t, StatusNotFoundError, s.GetCode())
 	CheckEq(t, "bazquux", s.GetMessage())
-}
-
-func TestVersion(t *testing.T) {
-	CheckTrue(t, len(Version) > 3)
-	CheckTrue(t, len(OSName) > 0)
-	CheckTrue(t, PageSize > 0)
-	CheckEq(t, int64(^uint64(0)>>1)*-1-1, Int64Min)
-	CheckEq(t, ^uint64(0)>>1, Int64Max)
 }
 
 func TestDBMBasic(t *testing.T) {
@@ -471,7 +471,7 @@ func TestDBMIterator(t *testing.T) {
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
 
-func TestThread(t *testing.T) {
+func TestDBMThread(t *testing.T) {
 	tmpDir := MakeTempDir()
 	defer os.RemoveAll(tmpDir)
 	filePath := path.Join(tmpDir, "casket.tkh")
@@ -544,7 +544,7 @@ func TestThread(t *testing.T) {
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
 }
 
-func TestSearch(t *testing.T) {
+func TestDBMSearch(t *testing.T) {
 	tmpDir := MakeTempDir()
 	defer os.RemoveAll(tmpDir)
 	filePath := path.Join(tmpDir, "casket.tks")
@@ -572,6 +572,46 @@ func TestSearch(t *testing.T) {
 	CheckEq(t, 10, len(keys))
 	CheckEq(t, "00000010", keys[0])
 	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+}
+
+func TestFile(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.txt")
+	file := NewFile()
+	status := file.Open(filePath, true, "truncate=true")
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckTrue(t, len(file.String()) > len(filePath))
+	CheckTrue(t, file.Write(3, "defg").Equals(StatusSuccess))
+	CheckTrue(t, file.Write(0, "abc").Equals(StatusSuccess))
+	off, status := file.Append("hij")
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, 7, off)
+	size, status := file.GetSize()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, 10, size)
+	data, status := file.Read(0, 10)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "abcdefghij", data)
+	data_str, status := file.ReadStr(3, 5)
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, "defgh", data_str)
+	data, status = file.Read(8, 4)
+	CheckTrue(t, status.Equals(StatusInfeasibleError))
+	CheckTrue(t, file.Truncate(5).Equals(StatusSuccess))
+	size, status = file.GetSize()
+	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, 5, size)
+	CheckTrue(t, file.Synchronize(false, 0, 5).Equals(StatusSuccess))
+	CheckTrue(t, file.Truncate(0).Equals(StatusSuccess))
+	for i := 1; i <= 100; i++ {
+		_, status = file.Append(fmt.Sprintf("%08d\n", i))
+		CheckTrue(t, status.Equals(StatusSuccess))
+	}
+	CheckEq(t, 19, len(file.Search("contain", "9", 0)))
+	CheckEq(t, 1, len(file.Search("contain", "100", 0)))
+	CheckEq(t, 3, len(file.Search("end", "0", 3)))
+	CheckTrue(t, file.Close().Equals(StatusSuccess))
 }
 
 // END OF FILE

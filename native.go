@@ -33,13 +33,18 @@ typedef struct {
 } RES_DBM;
 
 typedef struct {
+  TkrzwFile* file;
+  RES_STATUS status;
+} RES_FILE;
+
+typedef struct {
   char* value_ptr;
   int32_t value_size;
   RES_STATUS status;
 } RES_VALUE;
 
 typedef struct {
-  int64_t count;
+  int64_t num;
   RES_STATUS status;
 } RES_INT;
 
@@ -192,7 +197,7 @@ RES_STATUS do_dbm_compare_exchange(
 RES_INT do_dbm_increment(
     TkrzwDBM* dbm, const char* key_ptr, int32_t key_size, int64_t inc, int64_t init) {
   RES_INT res;
-  res.count = tkrzw_dbm_increment(dbm, key_ptr, key_size, inc, init);
+  res.num = tkrzw_dbm_increment(dbm, key_ptr, key_size, inc, init);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -212,7 +217,7 @@ RES_STATUS do_dbm_compare_exchange_multi(
 
 RES_INT do_dbm_count(TkrzwDBM* dbm) {
   RES_INT res;
-  res.count = tkrzw_dbm_count(dbm);
+  res.num = tkrzw_dbm_count(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -221,7 +226,7 @@ RES_INT do_dbm_count(TkrzwDBM* dbm) {
 
 RES_INT do_dbm_get_file_size(TkrzwDBM* dbm) {
   RES_INT res;
-  res.count = tkrzw_dbm_get_file_size(dbm);
+  res.num = tkrzw_dbm_get_file_size(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -421,6 +426,87 @@ RES_STATUS do_dbm_iter_remove(TkrzwDBMIter* iter) {
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_FILE do_file_open(const char* path, bool writable, const char* params) {
+  RES_FILE res;
+  res.file = tkrzw_file_open(path, writable, params);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_file_close(TkrzwFile* file) {
+  RES_STATUS res;
+  tkrzw_file_close(file);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_file_read(TkrzwFile* file, int64_t off, char* buf, size_t size) {
+  RES_STATUS res;
+  tkrzw_file_read(file, off, buf, size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_file_write(TkrzwFile* file, int64_t off, const char* buf, size_t size) {
+  RES_STATUS res;
+  tkrzw_file_write(file, off, buf, size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_INT do_file_append(TkrzwFile* file, const char* buf, size_t size) {
+  RES_INT res;
+  tkrzw_file_append(file, buf, size, &res.num);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_INT do_file_truncate(TkrzwFile* file, int64_t size) {
+  RES_INT res;
+  tkrzw_file_truncate(file, size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_INT do_file_synchronize(TkrzwFile* file, bool hard, int64_t off, int64_t size) {
+  RES_INT res;
+  tkrzw_file_synchronize(file, hard, off, size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_INT do_file_get_size(TkrzwFile* file) {
+  RES_INT res;
+  res.num = tkrzw_file_get_size(file);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STR do_file_get_path(TkrzwFile* file) {
+  RES_STR res;
+  res.str = tkrzw_file_get_path(file);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
   return res;
 }
 
@@ -684,7 +770,7 @@ func dbm_increment(dbm uintptr, key []byte, inc int64, init int64) (int64, *Stat
 	res := C.do_dbm_increment(
 		xdbm, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
 	status := convert_status(res.status)
-	return int64(res.count), status
+	return int64(res.num), status
 }
 
 func dbm_compare_exchange_multi(
@@ -744,14 +830,14 @@ func dbm_count(dbm uintptr) (int64, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_count(xdbm)
 	status := convert_status(res.status)
-	return int64(res.count), status
+	return int64(res.num), status
 }
 
 func dbm_get_file_size(dbm uintptr) (int64, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_get_file_size(xdbm)
 	status := convert_status(res.status)
-	return int64(res.count), status
+	return int64(res.num), status
 }
 
 func dbm_get_file_path(dbm uintptr) (string, *Status) {
@@ -996,6 +1082,107 @@ func dbm_iter_remove(iter uintptr) *Status {
 	res := C.do_dbm_iter_remove(xiter)
 	status := convert_status(res)
 	return status
+}
+
+func file_open(path string, writable bool, params string) (uintptr, *Status) {
+	xpath := C.CString(path)
+	defer C.free(unsafe.Pointer(xpath))
+	xparams := C.CString(params)
+	defer C.free(unsafe.Pointer(xparams))
+	res := C.do_file_open(xpath, C.bool(writable), xparams)
+	status := convert_status(res.status)
+	return uintptr(unsafe.Pointer(res.file)), status
+}
+
+func file_close(file uintptr) *Status {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	res := C.do_file_close(xfile)
+	status := convert_status(res)
+	return status
+}
+
+func file_read(file uintptr, off int64, size int64) ([]byte, *Status) {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	xdata := (*C.char)(unsafe.Pointer(C.malloc(C.size_t(size + 1))))
+	defer C.free(unsafe.Pointer(xdata))
+	res := C.do_file_read(xfile, C.int64_t(off), xdata, C.size_t(size))
+	var data []byte = nil
+	if res.code == C.TKRZW_STATUS_SUCCESS {
+		data = C.GoBytes(unsafe.Pointer(xdata), C.int(size))
+	}
+	status := convert_status(res)
+	return data, status
+}
+
+func file_write(file uintptr, off int64, data []byte) *Status {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	xdata := (*C.char)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(xdata))
+	res := C.do_file_write(xfile, C.int64_t(off), xdata, C.size_t(len(data)))
+	status := convert_status(res)
+	return status
+}
+
+func file_append(file uintptr, data []byte) (int64, *Status) {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	xdata := (*C.char)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(xdata))
+	res := C.do_file_append(xfile, xdata, C.size_t(len(data)))
+	status := convert_status(res.status)
+	return int64(res.num), status
+}
+
+func file_truncate(file uintptr, size int64) *Status {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	res := C.do_file_truncate(xfile, C.int64_t(size))
+	status := convert_status(res.status)
+	return status
+}
+
+func file_synchronize(file uintptr, hard bool, off int64, size int64) *Status {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	res := C.do_file_synchronize(xfile, C.bool(hard), C.int64_t(off), C.int64_t(size))
+	status := convert_status(res.status)
+	return status
+}
+
+func file_get_size(file uintptr) (int64, *Status) {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	res := C.do_file_get_size(xfile)
+	status := convert_status(res.status)
+	return int64(res.num), status
+}
+
+func file_get_path(file uintptr) (string, *Status) {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	res := C.do_file_get_path(xfile)
+	var path string
+	if res.str != nil {
+		defer C.free(unsafe.Pointer(res.str))
+		path = C.GoString(res.str)
+	}
+	status := convert_status(res.status)
+	return path, status
+}
+
+func file_search(file uintptr, mode string, pattern string, capacity int) []string {
+	xfile := (*C.TkrzwFile)(unsafe.Pointer(file))
+	xmode := C.CString(mode)
+	defer C.free(unsafe.Pointer(xmode))
+	xpattern := C.CString(pattern)
+	defer C.free(unsafe.Pointer(xpattern))
+	var num_matched C.int32_t = 0
+	xlines := C.tkrzw_file_search(
+		xfile, xmode, xpattern, C.int32_t(len(pattern)), C.int32_t(capacity), &num_matched)
+	lines := make([]string, 0, num_matched)
+	line_ptr := uintptr(unsafe.Pointer(xlines))
+	for i := C.int32_t(0); i < num_matched; i++ {
+		xline := (*C.TkrzwStr)(unsafe.Pointer(line_ptr))
+		line := C.GoStringN(xline.ptr, xline.size)
+		lines = append(lines, line)
+		line_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	return lines
 }
 
 // END OF FILE
