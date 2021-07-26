@@ -738,9 +738,9 @@ func (self *DBM) MakeIterator() *Iterator {
 func (self *DBM) Each() <-chan KeyValuePair {
 	chan_record := make(chan KeyValuePair)
 	reader := func(chan_send chan<- KeyValuePair) {
+		defer close(chan_record)
 		iter := self.MakeIterator()
 		defer iter.Destruct()
-		defer close(chan_record)
 		if !iter.First().IsOK() {
 			return
 		}
@@ -765,9 +765,9 @@ func (self *DBM) Each() <-chan KeyValuePair {
 func (self *DBM) EachStr() <-chan KeyValueStrPair {
 	chan_record := make(chan KeyValueStrPair)
 	reader := func(chan_send chan<- KeyValueStrPair) {
+		defer close(chan_record)
 		iter := self.MakeIterator()
 		defer iter.Destruct()
-		defer close(chan_record)
 		if !iter.First().IsOK() {
 			return
 		}
