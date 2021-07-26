@@ -47,19 +47,18 @@ func main() {
 		}
 
 		// Prepares the pre-condition and the post-condition of the transaction.
-		// Keys and values are represented as byte slices.
-		old_records := []tkrzw.KeyValuePair{
-			{tkrzw.ToByteArray(src_key), tkrzw.ToByteArray(old_src_value)},
-			{tkrzw.ToByteArray(dest_key), tkrzw.ToByteArray(old_dest_value)},
+		old_records := []tkrzw.KeyValueStrPair{
+			{src_key, tkrzw.ToString(old_src_value)},
+			{dest_key, tkrzw.ToString(old_dest_value)},
 		}
-		new_records := []tkrzw.KeyValuePair{
-			{tkrzw.ToByteArray(src_key), tkrzw.ToByteArray(new_src_value)},
-			{tkrzw.ToByteArray(dest_key), tkrzw.ToByteArray(new_dest_value)},
+		new_records := []tkrzw.KeyValueStrPair{
+			{src_key, tkrzw.ToString(new_src_value)},
+			{dest_key, tkrzw.ToString(new_dest_value)},
 		}
 
 		// Performs the transaction atomically.
 		// This fails safely if other concurrent transactions break the pre-condition.
-		return dbm.CompareExchangeMulti(old_records, new_records)
+		return dbm.CompareExchangeMultiStr(old_records, new_records)
 	}
 
 	// Tries a transaction until it succeeds

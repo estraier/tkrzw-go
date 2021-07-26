@@ -1,5 +1,11 @@
 2021-07-25  Mikio Hirabayashi  <hirarin@gmail.com>
 
+	- Release: 0.1.4
+
+	- Add CompareExchangeMultiStr method.
+
+2021-07-25  Mikio Hirabayashi  <hirarin@gmail.com>
+
 	- Release: 0.1.2
 
 	- Add PageSize constant.

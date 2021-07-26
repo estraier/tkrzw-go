@@ -417,6 +417,17 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, "*", dbm.GetSimple("one", "*"))
 	CheckEq(t, "*", dbm.GetSimple("two", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
+	set4 := []KeyValueStrPair{KeyValueStrPair{"one", ""}, KeyValueStrPair{"two", ""}}
+	set5 := []KeyValueStrPair{KeyValueStrPair{"one", "apple"}, KeyValueStrPair{"two", "orange"}}
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMultiStr(set4, set5))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMultiStr(set4, set5))
+	CheckEq(t, "apple", dbm.GetSimple("one", "*"))
+	CheckEq(t, "orange", dbm.GetSimple("two", "*"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMultiStr(set5, set4))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMultiStr(set5, set4))
+	CheckEq(t, "*", dbm.GetSimple("one", "*"))
+	CheckEq(t, "*", dbm.GetSimple("two", "*"))
+	CheckEq(t, 0, dbm.CountSimple())
 	fileSize, status := dbm.GetFileSize()
 	CheckEq(t, StatusSuccess, status)
 	CheckTrue(t, fileSize > 0)

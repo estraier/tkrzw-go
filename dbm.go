@@ -425,6 +425,35 @@ func (self *DBM) CompareExchangeMulti(expected []KeyValuePair, desired []KeyValu
 	return dbm_compare_exchange_multi(self.dbm, expected, desired)
 }
 
+// Compares the values of records and exchanges if the condition meets, using string data.
+//
+// @param expected A sequence of pairs of the record keys and their expected values.  If the value is an empty string, no existing record is expected.
+// @param desired A sequence of pairs of the record keys and their desired values.  If the value is an empty string, the record is to be removed.
+// @return The result status.  If the condition doesn't meet, StatusInfeasibleError is returned.
+func (self *DBM) CompareExchangeMultiStr(
+	expected []KeyValueStrPair, desired []KeyValueStrPair) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	rawExpected := make([]KeyValuePair, 0, len(expected))
+	for _, record := range expected {
+		var value []byte
+		if len(record.Value) > 0 {
+			value = []byte(record.Value)
+		}
+		rawExpected = append(rawExpected, KeyValuePair{[]byte(record.Key), value})
+	}
+	rawDesired := make([]KeyValuePair, 0, len(desired))
+	for _, record := range desired {
+		var value []byte
+		if len(record.Value) > 0 {
+			value = []byte(record.Value)
+		}
+		rawDesired = append(rawDesired, KeyValuePair{[]byte(record.Key), value})
+	}
+	return dbm_compare_exchange_multi(self.dbm, rawExpected, rawDesired)
+}
+
 // Gets the number of records.
 //
 // @return The number of records and the result status.
