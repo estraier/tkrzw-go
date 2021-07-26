@@ -33,43 +33,111 @@ The following code is a simple example to use a database, without checking error
  package main
 
  import (
-  "fmt"
-  "github.com/estraier/tkrzw-go"
+   "fmt"
+   "github.com/estraier/tkrzw-go"
  )
 
  func main() {
-  // Prepares the database.
-  dbm := tkrzw.NewDBM()
-  dbm.Open("casket.tkh", true, "truncate=true,num_buckets=100")
+   // Prepares the database.
+   dbm := tkrzw.NewDBM()
+   dbm.Open("casket.tkh", true, "truncate=true,num_buckets=100")
 
-  // Sets records.
-  // Keys and values are implicitly converted into bytes.
-  dbm.Set("first", "hop", true)
-  dbm.Set("second", "step", true)
-  dbm.Set("third", "jump", true)
+   // Sets records.
+   // Keys and values are implicitly converted into bytes.
+   dbm.Set("first", "hop", true)
+   dbm.Set("second", "step", true)
+   dbm.Set("third", "jump", true)
 
-  // Retrieves record values as strings.
-  fmt.Println(dbm.GetStrSimple("first", "*"))
-  fmt.Println(dbm.GetStrSimple("second", "*"))
-  fmt.Println(dbm.GetStrSimple("third", "*"))
+   // Retrieves record values as strings.
+   fmt.Println(dbm.GetStrSimple("first", "*"))
+   fmt.Println(dbm.GetStrSimple("second", "*"))
+   fmt.Println(dbm.GetStrSimple("third", "*"))
 
-  // Traverses records.
-  iter := dbm.MakeIterator()
-  iter.First()
-  for {
-    key, value, status := iter.GetStr()
-    if !status.IsOK() {
-      break
-    }
-    fmt.Println(key, value)
-    iter.Next()
-  }
-  iter.Destruct()
+   // Traverses records with a range over a channel.
+   for record := range dbm.EachStr() {
+     fmt.Println(record.Key, record.Value)
+   }
 
-  // Closes the database.
-  dbm.Close()
+   // Closes the database.
+   dbm.Close()
  }
 
+The following code is an advanced example where a so-called long transaction is done by the compare-and-exchange (aka compare-and-swap) idiom.  The example also shows how to use the iterator to access each record.
+
+ package main
+
+ import (
+   "fmt"
+   "github.com/estraier/tkrzw-go"
+ )
+
+ func main() {
+   // Prepares the database.
+   // The method OrDie causes panic if the status is not success.
+   // You should write your own error handling in large scale programs.
+   dbm := tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, "truncate=true,num_buckets=100").OrDie()
+
+   // Closes the database for sure and checks the error too.
+   defer func() { dbm.Close().OrDie() }()
+
+   // Two bank accounts for Bob and Alice.
+   // Numeric values are converted into strings implicitly.
+   dbm.Set("Bob", 1000, false).OrDie()
+   dbm.Set("Alice", 3000, false).OrDie()
+
+   // Function to do a money transfer atomically.
+   transfer := func(src_key string, dest_key string, amount int64) *tkrzw.Status {
+     // Gets the old values as numbers.
+     old_src_value := tkrzw.ToInt(dbm.GetStrSimple(src_key, "0"))
+     old_dest_value := tkrzw.ToInt(dbm.GetStrSimple(dest_key, "0"))
+
+     // Calculates the new values.
+     new_src_value := old_src_value - amount
+     new_dest_value := old_dest_value + amount
+     if new_src_value < 0 {
+       return tkrzw.NewStatus(tkrzw.StatusApplicationError, "insufficient value")
+     }
+
+     // Prepares the pre-condition and the post-condition of the transaction.
+     // Keys and values are represented as byte slices.
+     old_records := []tkrzw.KeyValuePair{
+       {tkrzw.ToByteArray(src_key), tkrzw.ToByteArray(old_src_value)},
+       {tkrzw.ToByteArray(dest_key), tkrzw.ToByteArray(old_dest_value)},
+     }
+     new_records := []tkrzw.KeyValuePair{
+       {tkrzw.ToByteArray(src_key), tkrzw.ToByteArray(new_src_value)},
+       {tkrzw.ToByteArray(dest_key), tkrzw.ToByteArray(new_dest_value)},
+     }
+
+     // Performs the transaction atomically.
+     // This fails safely if other concurrent transactions break the pre-condition.
+     return dbm.CompareExchangeMulti(old_records, new_records)
+   }
+
+   // Tries a transaction until it succeeds
+   var status *tkrzw.Status
+   for num_tries := 0; num_tries < 100; num_tries++ {
+     status = transfer("Alice", "Bob", 500)
+     if !status.Equals(tkrzw.StatusInfeasibleError) {
+       break
+     }
+   }
+   status.OrDie()
+
+   // Traverses records in a primitive way.
+   iter := dbm.MakeIterator()
+   defer iter.Destruct()
+   iter.First()
+   for {
+     key, value, status := iter.GetStr()
+     if !status.IsOK() {
+       break
+     }
+     fmt.Println(key, value)
+     iter.Next()
+   }
+ }
 */
 package tkrzw
 

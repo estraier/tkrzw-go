@@ -28,6 +28,12 @@ import (
 
 func CheckEq(t *testing.T, want interface{}, got interface{}) {
 	_, _, line, _ := runtime.Caller(1)
+	if want == nil {
+		if got != nil {
+			t.Errorf("line=%d: not equal: want=%q, got=%q", line, want, got)
+		}
+		return
+	}
 	switch want := want.(type) {
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		if ToInt(want) != ToInt(got) {
@@ -45,6 +51,31 @@ func CheckEq(t *testing.T, want interface{}, got interface{}) {
 		if !reflect.DeepEqual(want, ToByteArray(got)) {
 			t.Errorf("line=%d: not equal: want=%q, got=%q", line, want, got)
 		}
+	case Status:
+		if !want.Equals(got) {
+			t.Errorf("line=%d: not equal: want=%s, got=%s", line, want.String(), got)
+		}
+	case *Status:
+		if !want.Equals(got) {
+			t.Errorf("line=%d: not equal: want=%s, got=%s", line, want.String(), got)
+		}
+	case StatusCode:
+		switch got := got.(type) {
+		case Status:
+			if !got.Equals(want) {
+				t.Errorf("line=%d: not equal: want=%s, got=%s", line, StatusCodeName(want), got.String())
+			}
+		case *Status:
+			if !got.Equals(want) {
+				t.Errorf("line=%d: not equal: want=%s, got=%s", line, StatusCodeName(want), got.String())
+			}
+		case StatusCode:
+			if want != got {
+				t.Errorf("line=%d: not equal: want=%s, got=%s", line, StatusCodeName(want), StatusCodeName(got))
+			}
+		default:
+			t.Errorf("line=%d: not comparable: want=%s, got=%q", line, StatusCodeName(want), got)
+		}
 	default:
 		if want != got {
 			t.Errorf("line=%d: not equal: want=%q, got=%q", line, want, got)
@@ -54,6 +85,12 @@ func CheckEq(t *testing.T, want interface{}, got interface{}) {
 
 func CheckNe(t *testing.T, want interface{}, got interface{}) {
 	_, _, line, _ := runtime.Caller(1)
+	if want == nil {
+		if got == nil {
+			t.Errorf("line=%d: equal: want=%q, got=%q", line, want, got)
+		}
+		return
+	}
 	switch want := want.(type) {
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		if ToInt(want) == ToInt(got) {
@@ -70,6 +107,31 @@ func CheckNe(t *testing.T, want interface{}, got interface{}) {
 	case []byte:
 		if reflect.DeepEqual(want, ToByteArray(got)) {
 			t.Errorf("line=%d: equal: want=%q, got=%q", line, want, got)
+		}
+	case Status:
+		if want.Equals(got) {
+			t.Errorf("line=%d: equal: want=%s, got=%s", line, want.String(), got)
+		}
+	case *Status:
+		if want.Equals(got) {
+			t.Errorf("line=%d: equal: want=%s, got=%s", line, want.String(), got)
+		}
+	case StatusCode:
+		switch got := got.(type) {
+		case Status:
+			if got.Equals(want) {
+				t.Errorf("line=%d: equal: want=%s, got=%s", line, StatusCodeName(want), got.String())
+			}
+		case *Status:
+			if got.Equals(want) {
+				t.Errorf("line=%d: equal: want=%s, got=%s", line, StatusCodeName(want), got.String())
+			}
+		case StatusCode:
+			if want == got {
+				t.Errorf("line=%d: equal: want=%s, got=%s", line, StatusCodeName(want), StatusCodeName(got))
+			}
+		default:
+			t.Errorf("line=%d: not comparable: want=%s, got=%q", line, StatusCodeName(want), got)
 		}
 	default:
 		if want == got {
@@ -103,6 +165,8 @@ func MakeTempDir() string {
 }
 
 func TestAssertion(t *testing.T) {
+	CheckEq(t, nil, nil)
+	CheckNe(t, nil, 0)
 	CheckEq(t, 2, 2)
 	CheckEq(t, 2.0, 2.0)
 	CheckEq(t, "two", "two")
@@ -239,6 +303,16 @@ func TestStatus(t *testing.T) {
 	s = NewStatus2(StatusNotFoundError, "bazquux")
 	CheckEq(t, StatusNotFoundError, s.GetCode())
 	CheckEq(t, "bazquux", s.GetMessage())
+	CheckEq(t, StatusSuccess, StatusSuccess)
+	CheckEq(t, StatusSuccess, NewStatus1(StatusSuccess))
+	CheckEq(t, NewStatus1(StatusSuccess), StatusSuccess)
+	CheckEq(t, NewStatus1(StatusSuccess), NewStatus1(StatusSuccess))
+	CheckEq(t, StatusNotFoundError, NewStatus1(StatusNotFoundError))
+	CheckNe(t, StatusNotFoundError, StatusSuccess)
+	CheckNe(t, StatusNotFoundError, NewStatus1(StatusSuccess))
+	CheckNe(t, NewStatus1(StatusNotFoundError), StatusSuccess)
+	CheckNe(t, NewStatus1(StatusNotFoundError), NewStatus1(StatusSuccess))
+	CheckNe(t, StatusNotFoundError, NewStatus1(StatusUnknownError))
 }
 
 func TestDBMBasic(t *testing.T) {
@@ -248,107 +322,107 @@ func TestDBMBasic(t *testing.T) {
 	copyPath := path.Join(tmpDir, "casket-copy.tkh")
 	dbm := NewDBM()
 	status := dbm.Open(filePath, true, "truncate=true,num_buckets=5")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckTrue(t, len(dbm.String()) > len(filePath))
 	CheckTrue(t, dbm.Set("one", "first", false).IsOK())
-	CheckTrue(t, dbm.Set("one", "uno", false).Equals(StatusDuplicationError))
+	CheckEq(t, StatusDuplicationError, dbm.Set("one", "uno", false))
 	CheckTrue(t, dbm.Set("two", "second", false).IsOK())
 	CheckTrue(t, dbm.Set("three", "third", false).IsOK())
 	CheckTrue(t, dbm.Append("three", "3", ":").IsOK())
 	count, status := dbm.Count()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 3, count)
 	CheckEq(t, 3, dbm.CountSimple())
 	value, status := dbm.Get("one")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "first", value)
 	value, status = dbm.Get([]byte("two"))
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "second", value)
 	value_str, status := dbm.GetStr([]byte("three"))
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "third:3", value_str)
 	value_str, status = dbm.GetStr([]byte("fourth"))
-	CheckTrue(t, status.Equals(StatusNotFoundError))
+	CheckEq(t, StatusNotFoundError, status)
 	CheckEq(t, "", value_str)
 	CheckEq(t, "first", dbm.GetSimple("one", "*"))
 	CheckEq(t, "second", dbm.GetStrSimple("two", "*"))
 	CheckEq(t, "third:3", dbm.GetStrSimple([]byte("three"), "*"))
 	CheckEq(t, "*", dbm.GetStrSimple([]byte("four"), "*"))
-	CheckTrue(t, dbm.Remove("one").Equals(StatusSuccess))
-	CheckTrue(t, dbm.Remove("two").Equals(StatusSuccess))
-	CheckTrue(t, dbm.Remove([]byte("three")).Equals(StatusSuccess))
-	CheckTrue(t, dbm.Remove([]byte("fourth")).Equals(StatusNotFoundError))
+	CheckEq(t, StatusSuccess, dbm.Remove("one"))
+	CheckEq(t, StatusSuccess, dbm.Remove("two"))
+	CheckEq(t, StatusSuccess, dbm.Remove([]byte("three")))
+	CheckEq(t, StatusNotFoundError, dbm.Remove([]byte("fourth")))
 	CheckEq(t, 0, dbm.CountSimple())
-	CheckTrue(t, dbm.CompareExchange("num", nil, "first").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("num", nil, "first"))
 	CheckEq(t, "first", dbm.GetSimple("num", "*"))
-	CheckTrue(t, dbm.CompareExchange("num", nil, "first").Equals(StatusInfeasibleError))
-	CheckTrue(t, dbm.CompareExchange("num", "first", "second").Equals(StatusSuccess))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchange("num", nil, "first"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("num", "first", "second"))
 	CheckEq(t, "second", dbm.GetSimple("num", "*"))
-	CheckTrue(t, dbm.CompareExchange("num", "second", nil).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("num", "second", nil))
 	CheckEq(t, "*", dbm.GetSimple("num", "*"))
 	inc_value, status := dbm.Increment("num", 2, 100)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 102, inc_value)
 	inc_value, status = dbm.Increment("num", 3, 100)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 105, inc_value)
-	CheckTrue(t, dbm.Remove("num").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Remove("num"))
 	old_value, status := dbm.SetAndGet("zero", "nil", false)
 	CheckTrue(t, old_value == nil)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	old_value, status = dbm.SetAndGet("zero", "nothing", false)
 	CheckEq(t, "nil", old_value)
-	CheckTrue(t, status.Equals(StatusDuplicationError))
+	CheckEq(t, StatusDuplicationError, status)
 	old_value_str, status := dbm.SetAndGetStr("zero", "void", false)
 	CheckEq(t, "nil", *old_value_str)
-	CheckTrue(t, status.Equals(StatusDuplicationError))
+	CheckEq(t, StatusDuplicationError, status)
 	old_value, status = dbm.RemoveAndGet("zero")
 	CheckEq(t, "nil", old_value)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	old_value, status = dbm.RemoveAndGet("zero")
 	CheckTrue(t, old_value == nil)
-	CheckTrue(t, status.Equals(StatusNotFoundError))
+	CheckEq(t, StatusNotFoundError, status)
 	old_value_str, status = dbm.SetAndGetStr("zero", "void", false)
 	CheckTrue(t, old_value == nil)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	old_value_str, status = dbm.RemoveAndGetStr("zero")
 	CheckEq(t, "void", *old_value_str)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	old_value_str, status = dbm.RemoveAndGetStr("zero")
 	CheckTrue(t, old_value == nil)
-	CheckTrue(t, status.Equals(StatusNotFoundError))
+	CheckEq(t, StatusNotFoundError, status)
 	records := map[string]string{"one": "first", "two": "second"}
-	CheckTrue(t, dbm.SetMultiStr(records, false).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.SetMultiStr(records, false))
 	keys := []string{"one", "two", "three"}
 	records = dbm.GetMultiStr(keys)
 	CheckEq(t, 2, len(records))
 	CheckEq(t, "first", records["one"])
 	CheckEq(t, "second", records["two"])
-	CheckTrue(t, dbm.RemoveMulti(keys).Equals(StatusNotFoundError))
+	CheckEq(t, StatusNotFoundError, dbm.RemoveMulti(keys))
 	set1 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte(nil)},
 		KeyValuePair{[]byte("two"), []byte(nil)}}
 	set2 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte("ichi")},
 		KeyValuePair{[]byte("two"), []byte("ni")}}
 	set3 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte("uno")},
 		KeyValuePair{[]byte("two"), []byte("dos")}}
-	CheckTrue(t, dbm.CompareExchangeMulti(set1, set2).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(set1, set2))
 	CheckEq(t, "ichi", dbm.GetSimple("one", "*"))
 	CheckEq(t, "ni", dbm.GetSimple("two", "*"))
-	CheckTrue(t, dbm.CompareExchangeMulti(set1, set2).Equals(StatusInfeasibleError))
-	CheckTrue(t, dbm.CompareExchangeMulti(set2, set3).Equals(StatusSuccess))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMulti(set1, set2))
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(set2, set3))
 	CheckEq(t, "uno", dbm.GetSimple("one", "*"))
 	CheckEq(t, "dos", dbm.GetSimple("two", "*"))
-	CheckTrue(t, dbm.CompareExchangeMulti(set3, set1).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(set3, set1))
 	CheckEq(t, "*", dbm.GetSimple("one", "*"))
 	CheckEq(t, "*", dbm.GetSimple("two", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
 	fileSize, status := dbm.GetFileSize()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckTrue(t, fileSize > 0)
 	CheckEq(t, fileSize, dbm.GetFileSizeSimple())
 	gotFilePath, status := dbm.GetFilePath()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, filePath, gotFilePath)
 	CheckEq(t, filePath, dbm.GetFilePathSimple())
 	for i := 1; i <= 10; i++ {
@@ -356,71 +430,71 @@ func TestDBMBasic(t *testing.T) {
 	}
 	CheckEq(t, 10, dbm.CountSimple())
 	tobe, status := dbm.ShouldBeRebuilt()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckTrue(t, tobe)
 	CheckTrue(t, dbm.ShouldBeRebuiltSimple())
-	CheckTrue(t, dbm.Rebuild("").Equals(StatusSuccess))
-	CheckTrue(t, dbm.Synchronize(true, "").Equals(StatusSuccess))
-	CheckTrue(t, dbm.CopyFileData(copyPath).Equals(StatusSuccess))
-	CheckTrue(t, dbm.Clear().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Rebuild(""))
+	CheckEq(t, StatusSuccess, dbm.Synchronize(true, ""))
+	CheckEq(t, StatusSuccess, dbm.CopyFileData(copyPath))
+	CheckEq(t, StatusSuccess, dbm.Clear())
 	CheckEq(t, 0, dbm.CountSimple())
-	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
-	CheckTrue(t, dbm.Open(copyPath, true, "").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Close())
+	CheckEq(t, StatusSuccess, dbm.Open(copyPath, true, ""))
 	copyDBM := NewDBM()
-	CheckTrue(t, copyDBM.Open(copyPath, false, "").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, false, ""))
 	CheckEq(t, 10, copyDBM.CountSimple())
-	CheckTrue(t, copyDBM.Export(dbm).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, copyDBM.Export(dbm))
 	CheckEq(t, 10, dbm.CountSimple())
-	CheckTrue(t, copyDBM.Close().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, copyDBM.Close())
 	inspRecords := dbm.Inspect()
 	CheckEq(t, "10", inspRecords["num_records"])
 	CheckEq(t, "HashDBM", inspRecords["class"])
 	iter := dbm.MakeIterator()
-	CheckTrue(t, iter.First().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.First())
 	CheckTrue(t, len(iter.String()) > 1)
 	count = 0
 	records = make(map[string]string)
 	for {
 		key, value, status := iter.Get()
 		if !status.IsOK() {
-			CheckTrue(t, status.Equals(StatusNotFoundError))
+			CheckEq(t, StatusNotFoundError, status)
 			break
 		}
 		key_str, value_str, status := iter.GetStr()
-		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, status)
 		CheckEq(t, key_str, string(key))
 		CheckEq(t, value_str, string(value))
 		records[key_str] = value_str
 		one_key, status := iter.GetKey()
-		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, status)
 		CheckEq(t, key_str, string(one_key))
 		one_key_str, status := iter.GetKeyStr()
-		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, status)
 		CheckEq(t, key_str, one_key_str)
 		one_value, status := iter.GetValue()
-		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, status)
 		CheckEq(t, value_str, string(one_value))
 		one_value_str, status := iter.GetValueStr()
-		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, status)
 		CheckEq(t, value_str, one_value_str)
-		CheckTrue(t, iter.Next().Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, iter.Next())
 		count++
 	}
 	CheckEq(t, 10, count)
 	for i := 1; i <= 10; i++ {
 		CheckEq(t, ToString(i*i), records[ToString(i)])
 	}
-	CheckTrue(t, iter.Jump("5").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.Jump("5"))
 	key, value, status := iter.Get()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "5", key)
 	CheckEq(t, "25", value)
-	CheckTrue(t, iter.Set("foobar").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.Set("foobar"))
 	value_str, status = iter.GetValueStr()
-	CheckTrue(t, iter.Remove().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.Remove())
 	CheckEq(t, 9, dbm.CountSimple())
 	iter.Destruct()
-	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
 func TestDBMIterator(t *testing.T) {
@@ -429,46 +503,58 @@ func TestDBMIterator(t *testing.T) {
 	filePath := path.Join(tmpDir, "casket.tkt")
 	dbm := NewDBM()
 	status := dbm.Open(filePath, true, "truncate=true")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	for i := 1; i <= 100; i++ {
 		key := fmt.Sprintf("%08d", i)
 		value := fmt.Sprintf("%d", i*i)
-		CheckTrue(t, dbm.Set(key, value, false).Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, dbm.Set(key, value, false))
 	}
 	CheckEq(t, 100, dbm.CountSimple())
 	iter := dbm.MakeIterator()
-	CheckTrue(t, iter.Jump("00000050").Equals(StatusSuccess))
-	CheckTrue(t, iter.Remove().Equals(StatusSuccess))
-	CheckTrue(t, iter.Jump("00000050").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.Jump("00000050"))
+	CheckEq(t, StatusSuccess, iter.Remove())
+	CheckEq(t, StatusSuccess, iter.Jump("00000050"))
 	key, status := iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000051", key)
-	CheckTrue(t, iter.JumpLower("00000051", true).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.JumpLower("00000051", true))
 	key, status = iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000051", key)
-	CheckTrue(t, iter.JumpLower("00000051", false).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.JumpLower("00000051", false))
 	key, status = iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000049", key)
-	CheckTrue(t, iter.Next().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.Next())
 	key, status = iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000051", key)
-	CheckTrue(t, iter.JumpUpper("00000049", true).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.JumpUpper("00000049", true))
 	key, status = iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000049", key)
-	CheckTrue(t, iter.JumpUpper("00000049", false).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.JumpUpper("00000049", false))
 	key, status = iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000051", key)
-	CheckTrue(t, iter.Previous().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, iter.Previous())
 	key, status = iter.GetKeyStr()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000049", key)
 	iter.Destruct()
-	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+	count := 0
+	for record := range dbm.Each() {
+		CheckEq(t, dbm.GetSimple(record.Key, ""), record.Value)
+		count++
+	}
+	CheckEq(t, dbm.CountSimple(), count)
+	count = 0
+	for record := range dbm.EachStr() {
+		CheckEq(t, dbm.GetSimple(record.Key, ""), record.Value)
+		count++
+	}
+	CheckEq(t, dbm.CountSimple(), count)
+	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
 func TestDBMThread(t *testing.T) {
@@ -477,7 +563,7 @@ func TestDBMThread(t *testing.T) {
 	filePath := path.Join(tmpDir, "casket.tkh")
 	dbm := NewDBM()
 	status := dbm.Open(filePath, true, "truncate=true")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	numIterations := 5000
 	numThreads := 5
 	recordMaps := make([]map[string]string, 0, numThreads)
@@ -502,14 +588,14 @@ func TestDBMThread(t *testing.T) {
 				if status.IsOK() {
 					CheckEq(t, (*recordMap)[key], gotValue)
 				} else {
-					CheckTrue(t, status.Equals(StatusNotFoundError))
+					CheckEq(t, StatusNotFoundError, status)
 				}
 			} else if random.Intn(5) == 0 {
 				status := dbm.Remove(key)
 				CheckTrue(t, status.Equals(StatusSuccess) || status.Equals(StatusNotFoundError))
 				delete(*recordMap, key)
 			} else {
-				CheckTrue(t, dbm.Set(key, value, true).Equals(StatusSuccess))
+				CheckEq(t, StatusSuccess, dbm.Set(key, value, true))
 				(*recordMap)[key] = value
 			}
 			mutex.Unlock()
@@ -536,12 +622,12 @@ func TestDBMThread(t *testing.T) {
 		numRecords += len(recordMap)
 		for key, value := range recordMap {
 			gotValue, status := dbm.Get(key)
-			CheckTrue(t, status.Equals(StatusSuccess))
+			CheckEq(t, StatusSuccess, status)
 			CheckEq(t, value, gotValue)
 		}
 	}
 	CheckEq(t, numRecords, dbm.CountSimple())
-	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
 func TestDBMExport(t *testing.T) {
@@ -550,26 +636,26 @@ func TestDBMExport(t *testing.T) {
 	filePath := path.Join(tmpDir, "casket.tkh")
 	copyPath := path.Join(tmpDir, "casket-copy.dat")
 	dbm := NewDBM()
-	CheckTrue(t, dbm.Open(filePath, true, "truncate=true").Equals(StatusSuccess))
-	CheckTrue(t, dbm.Set("one", "first", true).Equals(StatusSuccess))
-	CheckTrue(t, dbm.Set("two", "second", true).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Open(filePath, true, "truncate=true"))
+	CheckEq(t, StatusSuccess, dbm.Set("one", "first", true))
+	CheckEq(t, StatusSuccess, dbm.Set("two", "second", true))
 	CheckEq(t, 2, dbm.CountSimple())
 	copyFile := NewFile()
-	CheckTrue(t, copyFile.Open(copyPath, true, "truncate=true").Equals(StatusSuccess))
-	CheckTrue(t, dbm.ExportRecordsToFlatRecords(copyFile).Equals(StatusSuccess))
-	CheckTrue(t, dbm.Clear().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, copyFile.Open(copyPath, true, "truncate=true"))
+	CheckEq(t, StatusSuccess, dbm.ExportRecordsToFlatRecords(copyFile))
+	CheckEq(t, StatusSuccess, dbm.Clear())
 	CheckEq(t, 0, dbm.CountSimple())
-	CheckTrue(t, dbm.ImportRecordsFromFlatRecords(copyFile).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.ImportRecordsFromFlatRecords(copyFile))
 	CheckEq(t, 2, dbm.CountSimple())
 	CheckEq(t, "first", dbm.GetSimple("one", "*"))
 	CheckEq(t, "second", dbm.GetSimple("two", "*"))
-	CheckTrue(t, copyFile.Close().Equals(StatusSuccess))
-	CheckTrue(t, copyFile.Open(copyPath, true, "truncate=true").Equals(StatusSuccess))
-	CheckTrue(t, dbm.ExportKeysAsLines(copyFile).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, copyFile.Close())
+	CheckEq(t, StatusSuccess, copyFile.Open(copyPath, true, "truncate=true"))
+	CheckEq(t, StatusSuccess, dbm.ExportKeysAsLines(copyFile))
 	lines := copyFile.Search("contain", "o", 0)
 	CheckEq(t, 2, len(lines))
-	CheckTrue(t, copyFile.Close().Equals(StatusSuccess))
-	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, copyFile.Close())
+	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
 func TestDBMSearch(t *testing.T) {
@@ -578,13 +664,13 @@ func TestDBMSearch(t *testing.T) {
 	filePath := path.Join(tmpDir, "casket.tks")
 	dbm := NewDBM()
 	status := dbm.Open(filePath, true, "truncate=true")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	for i := 1; i <= 100; i++ {
 		key := fmt.Sprintf("%08d", i)
 		value := fmt.Sprintf("%d", i*i)
-		CheckTrue(t, dbm.Set(key, value, false).Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, dbm.Set(key, value, false))
 	}
-	CheckTrue(t, dbm.Synchronize(false, "reducer=ReduceToFirst").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Synchronize(false, "reducer=ReduceToFirst"))
 	CheckEq(t, 100, dbm.CountSimple())
 	keys := dbm.Search("contain", "99", 0)
 	CheckEq(t, 1, len(keys))
@@ -599,7 +685,7 @@ func TestDBMSearch(t *testing.T) {
 	keys = dbm.Search("end", "0", 0)
 	CheckEq(t, 10, len(keys))
 	CheckEq(t, "00000010", keys[0])
-	CheckTrue(t, dbm.Close().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
 func TestFile(t *testing.T) {
@@ -608,38 +694,38 @@ func TestFile(t *testing.T) {
 	filePath := path.Join(tmpDir, "casket.txt")
 	file := NewFile()
 	status := file.Open(filePath, true, "truncate=true")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckTrue(t, len(file.String()) > len(filePath))
-	CheckTrue(t, file.Write(3, "defg").Equals(StatusSuccess))
-	CheckTrue(t, file.Write(0, "abc").Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, file.Write(3, "defg"))
+	CheckEq(t, StatusSuccess, file.Write(0, "abc"))
 	off, status := file.Append("hij")
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 7, off)
 	size, status := file.GetSize()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 10, size)
 	data, status := file.Read(0, 10)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "abcdefghij", data)
 	data_str, status := file.ReadStr(3, 5)
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "defgh", data_str)
 	data, status = file.Read(8, 4)
-	CheckTrue(t, status.Equals(StatusInfeasibleError))
-	CheckTrue(t, file.Truncate(5).Equals(StatusSuccess))
+	CheckEq(t, StatusInfeasibleError, status)
+	CheckEq(t, StatusSuccess, file.Truncate(5))
 	size, status = file.GetSize()
-	CheckTrue(t, status.Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 5, size)
-	CheckTrue(t, file.Synchronize(false, 0, 5).Equals(StatusSuccess))
-	CheckTrue(t, file.Truncate(0).Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, file.Synchronize(false, 0, 5))
+	CheckEq(t, StatusSuccess, file.Truncate(0))
 	for i := 1; i <= 100; i++ {
 		_, status = file.Append(fmt.Sprintf("%08d\n", i))
-		CheckTrue(t, status.Equals(StatusSuccess))
+		CheckEq(t, StatusSuccess, status)
 	}
 	CheckEq(t, 19, len(file.Search("contain", "9", 0)))
 	CheckEq(t, 1, len(file.Search("contain", "100", 0)))
 	CheckEq(t, 3, len(file.Search("end", "0", 3)))
-	CheckTrue(t, file.Close().Equals(StatusSuccess))
+	CheckEq(t, StatusSuccess, file.Close())
 }
 
 // END OF FILE

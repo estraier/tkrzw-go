@@ -33,6 +33,14 @@ type KeyValuePair struct {
 	Value []byte
 }
 
+// A string pair of the key and the value of a record.
+type KeyValueStrPair struct {
+	// The key.
+	Key string
+	// The value
+	Value string
+}
+
 // Makes a new DBM object.
 //
 // @return The pointer to the created database object.
@@ -689,10 +697,64 @@ func (self *DBM) Search(mode string, pattern string, capacity int) []string {
 // Every iterator should be destructed explicitly by the "Destruct" method.
 func (self *DBM) MakeIterator() *Iterator {
 	if self.dbm == 0 {
-		return nil
+		return &Iterator{0}
 	}
 	iter := dbm_make_iterator(self.dbm)
 	return &Iterator{iter}
+}
+
+// Makes a channel to read each records.
+//
+// @return the channel to read each records.  All values should be read from the channel to avoid resource leak.
+func (self *DBM) Each() <-chan KeyValuePair {
+	chan_record := make(chan KeyValuePair)
+	reader := func(chan_send chan<- KeyValuePair) {
+		iter := self.MakeIterator()
+		defer iter.Destruct()
+		defer close(chan_record)
+		if !iter.First().IsOK() {
+			return
+		}
+		for {
+			key, value, status := iter.Get()
+			if !status.IsOK() {
+				break
+			}
+			chan_send <- KeyValuePair{key, value}
+			if !iter.Next().IsOK() {
+				return
+			}
+		}
+	}
+	go reader(chan_record)
+	return chan_record
+}
+
+// Makes a channel to read each records, as strings.
+//
+// @return the channel to read each records.  All values should be read from the channel to avoid resource leak.
+func (self *DBM) EachStr() <-chan KeyValueStrPair {
+	chan_record := make(chan KeyValueStrPair)
+	reader := func(chan_send chan<- KeyValueStrPair) {
+		iter := self.MakeIterator()
+		defer iter.Destruct()
+		defer close(chan_record)
+		if !iter.First().IsOK() {
+			return
+		}
+		for {
+			key, value, status := iter.GetStr()
+			if !status.IsOK() {
+				break
+			}
+			chan_send <- KeyValueStrPair{key, value}
+			if !iter.Next().IsOK() {
+				return
+			}
+		}
+	}
+	go reader(chan_record)
+	return chan_record
 }
 
 // END OF FILE

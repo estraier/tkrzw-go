@@ -34,18 +34,10 @@ func main() {
 	fmt.Println(dbm.GetStrSimple("second", "*"))
 	fmt.Println(dbm.GetStrSimple("third", "*"))
 
-	// Traverses records.
-	iter := dbm.MakeIterator()
-	iter.First()
-	for {
-		key, value, status := iter.GetStr()
-		if !status.IsOK() {
-			break
-		}
-		fmt.Println(key, value)
-		iter.Next()
+	// Traverses records with a range over a channel.
+	for record := range dbm.EachStr() {
+		fmt.Println(record.Key, record.Value)
 	}
-	iter.Destruct()
 
 	// Closes the database.
 	dbm.Close()
