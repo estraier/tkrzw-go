@@ -167,6 +167,9 @@ func (self *DBM) Close() *Status {
 // @param key The key of the record.
 // @return The bytes value of the matching record and the result status.
 func (self *DBM) Get(key interface{}) ([]byte, *Status) {
+	if self.dbm == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
 	return dbm_get(self.dbm, ToByteArray(key))
 }
 
