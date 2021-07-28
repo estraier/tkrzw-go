@@ -789,4 +789,16 @@ func (self *DBM) EachStr() <-chan KeyValueStrPair {
 	return chan_record
 }
 
+// Restores a broken database as a new healthy database.
+//
+// @param old_file_path The path of the broken database.
+// @param new_file_path The path of the new database to be created.
+// @param class_name The name of the database class.  If it is null or empty, the class is guessed from the file extension.
+// @param end_offset The exclusive end offset of records to read.  Negative means unlimited.  0 means the size when the database is synched or closed properly.  Using a positive value is not meaningful if the number of shards is more than one.
+// @return The result status.
+func RestoreDatabase(
+	oldFilePath string, newFilePath string, className string, endOffset int64) *Status {
+	return dbm_restore_database(oldFilePath, newFilePath, className, endOffset)
+}
+
 // END OF FILE

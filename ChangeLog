@@ -1,3 +1,9 @@
+2021-07-27  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.5
+
+	- Add RestoreDatabase function.
+
 2021-07-25  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.4

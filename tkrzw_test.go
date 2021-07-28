@@ -450,7 +450,7 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, dbm.Clear())
 	CheckEq(t, 0, dbm.CountSimple())
 	CheckEq(t, StatusSuccess, dbm.Close())
-	CheckEq(t, StatusSuccess, dbm.Open(copyPath, true, ""))
+	CheckEq(t, StatusSuccess, dbm.Open(filePath, true, ""))
 	copyDBM := NewDBM()
 	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, false, ""))
 	CheckEq(t, 10, copyDBM.CountSimple())
@@ -506,6 +506,11 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, 9, dbm.CountSimple())
 	iter.Destruct()
 	CheckEq(t, StatusSuccess, dbm.Close())
+	os.Remove(copyPath)
+	CheckEq(t, StatusSuccess, RestoreDatabase(filePath, copyPath, "", -1))
+	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, false, ""))
+	CheckEq(t, 9, copyDBM.CountSimple())
+	CheckEq(t, StatusSuccess, copyDBM.Close())
 }
 
 func TestDBMIterator(t *testing.T) {

@@ -329,6 +329,16 @@ RES_MAP do_dbm_inspect(TkrzwDBM* dbm) {
   return res;
 }
 
+RES_STATUS do_dbm_restore_database(const char* old_file_path, const char* new_file_path,
+    const char* class_name, int64_t end_offset) {
+  RES_STATUS res;
+  bool r = tkrzw_dbm_restore_database(old_file_path, new_file_path, class_name, end_offset);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_STATUS do_dbm_iter_first(TkrzwDBMIter* iter) {
   RES_STATUS res;
   tkrzw_dbm_iter_first(iter);
@@ -1004,6 +1014,20 @@ func dbm_search(dbm uintptr, mode string, pattern string, capacity int) []string
 func dbm_make_iterator(dbm uintptr) uintptr {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	return uintptr(unsafe.Pointer(C.tkrzw_dbm_make_iterator(xdbm)))
+}
+
+func dbm_restore_database(
+	old_file_path string, new_file_path string, class_name string, end_offset int64) *Status {
+	xold_file_path := C.CString(old_file_path)
+	defer C.free(unsafe.Pointer(xold_file_path))
+	xnew_file_path := C.CString(new_file_path)
+	defer C.free(unsafe.Pointer(xnew_file_path))
+	xclass_name := C.CString(class_name)
+	defer C.free(unsafe.Pointer(xclass_name))
+	res := C.do_dbm_restore_database(
+		xold_file_path, xnew_file_path, xclass_name, C.int64_t(end_offset))
+	status := convert_status(res)
+	return status
 }
 
 func dbm_iter_free(iter uintptr) {
