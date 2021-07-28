@@ -296,18 +296,18 @@ RES_STATUS do_dbm_export(TkrzwDBM* dbm, TkrzwDBM* dest_dbm) {
   return res;
 }
 
-RES_STATUS do_dbm_export_records_to_flat_records(TkrzwDBM* dbm, TkrzwFile* dest_file) {
+RES_STATUS do_dbm_export_to_flat_records(TkrzwDBM* dbm, TkrzwFile* dest_file) {
   RES_STATUS res;
-  tkrzw_dbm_export_records_to_flat_records(dbm, dest_file);
+  tkrzw_dbm_export_to_flat_records(dbm, dest_file);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
   return res;
 }
 
-RES_STATUS do_dbm_import_records_from_flat_records(TkrzwDBM* dbm, TkrzwFile* src_file) {
+RES_STATUS do_dbm_import_from_flat_records(TkrzwDBM* dbm, TkrzwFile* src_file) {
   RES_STATUS res;
-  tkrzw_dbm_import_records_from_flat_records(dbm, src_file);
+  tkrzw_dbm_import_from_flat_records(dbm, src_file);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
@@ -938,18 +938,18 @@ func dbm_export(dbm uintptr, dest_dbm uintptr) *Status {
 	return status
 }
 
-func dbm_export_records_to_flat_records(dbm uintptr, dest_file uintptr) *Status {
+func dbm_export_to_flat_records(dbm uintptr, dest_file uintptr) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xdest_file := (*C.TkrzwFile)(unsafe.Pointer(dest_file))
-	res := C.do_dbm_export_records_to_flat_records(xdbm, xdest_file)
+	res := C.do_dbm_export_to_flat_records(xdbm, xdest_file)
 	status := convert_status(res)
 	return status
 }
 
-func dbm_import_records_from_flat_records(dbm uintptr, src_file uintptr) *Status {
+func dbm_import_from_flat_records(dbm uintptr, src_file uintptr) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xsrc_file := (*C.TkrzwFile)(unsafe.Pointer(src_file))
-	res := C.do_dbm_import_records_from_flat_records(xdbm, xsrc_file)
+	res := C.do_dbm_import_from_flat_records(xdbm, xsrc_file)
 	status := convert_status(res)
 	return status
 }
