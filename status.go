@@ -160,7 +160,7 @@ func (self *Status) GetMessage() string {
 // Sets the code and the message.
 //
 // @param code The status code.
-// @param message An arbitrary status message.
+// @param message An arbitrary status message.  If it is omitted, no message is set.
 func (self *Status) Set(args ...interface{}) {
 	code := StatusSuccess
 	if len(args) > 0 {
@@ -172,6 +172,16 @@ func (self *Status) Set(args ...interface{}) {
 	}
 	self.code = code
 	self.message = message
+}
+
+// Assigns the internal state from another status object only if the current state is success.
+//
+// @param rhs The status object.
+func (self *Status) Join(rhs *Status) {
+	if self.code == StatusSuccess {
+		self.code = rhs.code
+		self.message = rhs.message
+	}
 }
 
 // Checks whether the status equal to another status.
