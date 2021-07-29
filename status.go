@@ -136,9 +136,11 @@ func (self *Status) String() string {
 
 // Makes a string representing the status, to be an error.
 //
-// @return The string representing the status.
+// @return The string representing the code.  As the string contains only the code, comparison
+// of the result strings is not affected by difference of the status messages.
+// the additiona 
 func (self *Status) Error() string {
-	return self.String()
+	return StatusCodeName(self.code)
 }
 
 // Gets the status code.
