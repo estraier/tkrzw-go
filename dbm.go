@@ -293,7 +293,7 @@ func (self *DBM) SetAndGetStr(key interface{}, value interface{},
 //
 // @param records Records to store.
 // @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
-// @return The result status.
+// @return The result status.  If there are records avoiding overwriting, StatusDuplicationError is returned.
 func (self *DBM) SetMulti(records map[string][]byte, overwrite bool) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
