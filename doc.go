@@ -137,6 +137,48 @@ The following code is an advanced example where a so-called long transaction is 
      iter.Next()
    }
  }
+
+The following code is a typical example of the asynchronous API.  The AsyncDBM class manages a thread pool and handles database operations in the background in parallel.  Each Method of AsyncDBM returns a Future object to monitor the result.
+
+ package main
+
+ import (
+   "fmt"
+   "github.com/estraier/tkrzw-go"
+ )
+
+ func main() {
+   // Prepares the database.
+   dbm := tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, "truncate=true,num_buckets=100")
+   defer dbm.Close()
+
+   // Prepares the asynchronous adapter with 4 worker threads.
+   async := tkrzw.NewAsyncDBM(dbm, 4)
+   defer async.Destruct()
+
+   // Executes the Set method asynchronously.
+   future := async.Set("hello", "world", true)
+   // Does something in the foreground.
+   fmt.Println("Setting a record")
+   // Checks the result after awaiting the set operation.
+   // The Get method releases the resource of the future.
+   status := future.Get()
+   if !status.IsOK() {
+     fmt.Println("ERROR: " + status.String())
+   }
+
+   // Executes the get method asynchronously.
+   future = async.Get("hello")
+   // Does something in the foreground.
+   fmt.Println("Getting a record")
+   // Checks the result after awaiting the get operation.
+   // The GetStr method releases the resource of the future.
+   value, status := future.GetStr()
+   if status.IsOK() {
+     fmt.Println("VALUE: " + value)
+   }
+ }
 */
 package tkrzw
 

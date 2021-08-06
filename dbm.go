@@ -165,7 +165,7 @@ func (self *DBM) Close() *Status {
 // Gets the value of a record of a key.
 //
 // @param key The key of the record.
-// @return The bytes value of the matching record and the result status.
+// @return The bytes value of the matching record and the result status.  If there's no matching record, the status is StatusNotFoundError.
 func (self *DBM) Get(key interface{}) ([]byte, *Status) {
 	if self.dbm == 0 {
 		return nil, NewStatus2(StatusPreconditionError, "not opened database")
@@ -176,16 +176,12 @@ func (self *DBM) Get(key interface{}) ([]byte, *Status) {
 // Gets the value of a record of a key, as a string.
 //
 // @param key The key of the record.
-// @return The string value of the matching record and the result status.
+// @return The string value of the matching record and the result status.  If there's no matching record, the status is StatusNotFoundError.
 func (self *DBM) GetStr(key interface{}) (string, *Status) {
 	if self.dbm == 0 {
 		return "", NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	value, status := dbm_get(self.dbm, ToByteArray(key))
-	if status.code == StatusSuccess {
-		return string(value), status
-	}
-	return "", status
+	return dbm_get_str(self.dbm, ToByteArray(key))
 }
 
 // Gets the value of a record of a key, in a simple way.
@@ -236,12 +232,10 @@ func (self *DBM) GetMulti(keys []string) map[string][]byte {
 // @param keys The keys of records to retrieve.
 // @eturn A map of retrieved records.  Keys which don't match existing records are ignored.
 func (self *DBM) GetMultiStr(keys []string) map[string]string {
-	records := dbm_get_multi(self.dbm, keys)
-	strRecords := make(map[string]string)
-	for key, value := range records {
-		strRecords[key] = ToString(value)
+	if self.dbm == 0 {
+		return make(map[string]string)
 	}
-	return strRecords
+	return dbm_get_multi_str(self.dbm, keys)
 }
 
 // Sets a record of a key and a value.
@@ -661,11 +655,10 @@ func (self *DBM) ExportKeysAsLines(destFile *File) *Status {
 //
 // return A map of property names and their values.
 func (self *DBM) Inspect() map[string]string {
-	records := make(map[string]string)
 	if self.dbm == 0 {
-		return records
+		return nil
 	}
-	dbm_inspect(self.dbm, records)
+	records := dbm_inspect(self.dbm)
 	return records
 }
 

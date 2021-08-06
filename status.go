@@ -46,7 +46,7 @@ const (
 	StatusApplicationError = StatusCode(12)
 )
 
-// Status of operations
+// Status of operations.
 type Status struct {
 	// The status code.
 	code StatusCode
@@ -138,7 +138,7 @@ func (self *Status) String() string {
 //
 // @return The string representing the code.  As the string contains only the code, comparison
 // of the result strings is not affected by difference of the status messages.
-// the additiona 
+// the additiona
 func (self *Status) Error() string {
 	return StatusCodeName(self.code)
 }

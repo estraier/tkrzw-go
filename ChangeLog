@@ -1,7 +1,8 @@
-2021-07-28  Mikio Hirabayashi  <hirarin@gmail.com>
+2021-08-06  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.6
 
+	- Add fundamental methods of the asynchronous API.
 	- Modify export methods.
 	- Compatibility to the C++ library: Tkrzw 0.9.48
 

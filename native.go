@@ -61,6 +61,7 @@ typedef struct {
 typedef struct {
   TkrzwKeyValuePair* records;
   int32_t num_records;
+  RES_STATUS status;
 } RES_MAP;
 
 typedef struct {
@@ -81,6 +82,45 @@ char* copy_status_message(const char* message) {
     memcpy(new_message, message, len + 1);
   }
   return new_message;
+}
+
+RES_STATUS do_future_get(TkrzwFuture* future) {
+  RES_STATUS res;
+  tkrzw_future_get(future);
+  tkrzw_future_free(future);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_VALUE do_future_get_bytes(TkrzwFuture* future) {
+  RES_VALUE res;
+  res.value_ptr = tkrzw_future_get_str(future, &res.value_size);
+  tkrzw_future_free(future);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STR do_future_get_str(TkrzwFuture* future) {
+  RES_STR res;
+  res.str = tkrzw_future_get_str(future, NULL);
+  tkrzw_future_free(future);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_MAP do_future_get_map(TkrzwFuture* future) {
+  RES_MAP res;
+  res.records = tkrzw_future_get_str_map(future, &res.num_records);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
 }
 
 RES_DBM do_dbm_open(const char* path, bool writable, const char* params) {
@@ -104,6 +144,15 @@ RES_STATUS do_dbm_close(TkrzwDBM* dbm) {
 RES_VALUE do_dbm_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
   RES_VALUE res;
   res.value_ptr = tkrzw_dbm_get(dbm, key_ptr, key_size, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STR do_dbm_get_str(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
+  RES_STR res;
+  res.str = tkrzw_dbm_get(dbm, key_ptr, key_size, NULL);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -613,6 +662,81 @@ func convert_status(res C.RES_STATUS) *Status {
 	return NewStatus2(StatusCode(res.code), C.GoString(res.message))
 }
 
+func future_free(future uintptr) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	C.tkrzw_future_free(xfuture)
+}
+
+func future_wait(future uintptr, timeout float32) bool {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	return bool(C.tkrzw_future_wait(xfuture, C.double(timeout)))
+}
+
+func future_get(future uintptr) *Status {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get(xfuture)
+	status := convert_status(res)
+	return status
+}
+
+func future_get_bytes(future uintptr) ([]byte, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_bytes(xfuture)
+	var value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return value, status
+}
+
+func future_get_str(future uintptr) (string, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_str(xfuture)
+	var value string
+	if res.str != nil {
+		defer C.free(unsafe.Pointer(res.str))
+		value = C.GoString(res.str)
+	}
+	status := convert_status(res.status)
+	return value, status
+}
+
+func future_get_map(future uintptr) (map[string][]byte, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_map(xfuture)
+	defer C.tkrzw_free_str_map(res.records, res.num_records)
+	records := make(map[string][]byte)
+	rec_ptr := uintptr(unsafe.Pointer(res.records))
+	for i := C.int32_t(0); i < res.num_records; i++ {
+		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
+		key := C.GoStringN(elem.key_ptr, elem.key_size)
+		value := C.GoBytes(unsafe.Pointer(elem.value_ptr), elem.value_size)
+		records[key] = value
+		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	status := convert_status(res.status)
+	return records, status
+}
+
+func future_get_map_str(future uintptr) (map[string]string, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_map(xfuture)
+	defer C.tkrzw_free_str_map(res.records, res.num_records)
+	records := make(map[string]string)
+	rec_ptr := uintptr(unsafe.Pointer(res.records))
+	for i := C.int32_t(0); i < res.num_records; i++ {
+		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
+		key := C.GoStringN(elem.key_ptr, elem.key_size)
+		value := C.GoStringN(elem.value_ptr, elem.value_size)
+		records[key] = value
+		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	status := convert_status(res.status)
+	return records, status
+}
+
 func dbm_open(path string, writable bool, params string) (uintptr, *Status) {
 	xpath := C.CString(path)
 	defer C.free(unsafe.Pointer(xpath))
@@ -644,6 +768,20 @@ func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
 	return value, status
 }
 
+func dbm_get_str(dbm uintptr, key []byte) (string, *Status) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	res := C.do_dbm_get_str(xdbm, xkey_ptr, C.int32_t(len(key)))
+	var value string
+	if res.str != nil {
+		defer C.free(unsafe.Pointer(res.str))
+		value = C.GoString(res.str)
+	}
+	status := convert_status(res.status)
+	return value, status
+}
+
 func dbm_get_multi(dbm uintptr, keys []string) map[string][]byte {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
@@ -666,6 +804,34 @@ func dbm_get_multi(dbm uintptr, keys []string) map[string][]byte {
 		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
 		key := C.GoStringN(elem.key_ptr, elem.key_size)
 		value := C.GoBytes(unsafe.Pointer(elem.value_ptr), elem.value_size)
+		records[key] = value
+		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	return records
+}
+
+func dbm_get_multi_str(dbm uintptr, keys []string) map[string]string {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
+	xkeys := (*C.TkrzwStr)(unsafe.Pointer(C.malloc(C.size_t(xkeys_size + 1))))
+	defer C.tkrzw_free_str_array(xkeys, C.int32_t(len(keys)))
+	xkey_ptr := uintptr(unsafe.Pointer(xkeys))
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		xkey := (*C.TkrzwStr)(unsafe.Pointer(xkey_ptr))
+		xkey.ptr = C.CString(key)
+		xkey.size = C.int32_t(len(key))
+		xkey_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	var num_records C.int32_t
+	xrecords := C.tkrzw_dbm_get_multi(xdbm, xkeys, C.int32_t(len(keys)), &num_records)
+	defer C.tkrzw_free_str_map(xrecords, num_records)
+	records := make(map[string]string)
+	rec_ptr := uintptr(unsafe.Pointer(xrecords))
+	for i := C.int32_t(0); i < num_records; i++ {
+		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
+		key := C.GoStringN(elem.key_ptr, elem.key_size)
+		value := C.GoStringN(elem.value_ptr, elem.value_size)
 		records[key] = value
 		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
 	}
@@ -962,11 +1128,12 @@ func dbm_export_keys_as_lines(dbm uintptr, dest_file uintptr) *Status {
 	return status
 }
 
-func dbm_inspect(dbm uintptr, records map[string]string) {
+func dbm_inspect(dbm uintptr) map[string]string {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_inspect(xdbm)
 	defer C.tkrzw_free_str_map(res.records, res.num_records)
 	rec_ptr := uintptr(unsafe.Pointer(res.records))
+	records := make(map[string]string)
 	for i := C.int32_t(0); i < res.num_records; i++ {
 		elem := (*C.TkrzwKeyValuePair)(unsafe.Pointer(rec_ptr))
 		name := C.GoStringN(elem.key_ptr, elem.key_size)
@@ -974,6 +1141,7 @@ func dbm_inspect(dbm uintptr, records map[string]string) {
 		records[name] = value
 		rec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
 	}
+	return records
 }
 
 func dbm_is_writable(dbm uintptr) bool {
@@ -1157,6 +1325,60 @@ func dbm_iter_remove(iter uintptr) *Status {
 	res := C.do_dbm_iter_remove(xiter)
 	status := convert_status(res)
 	return status
+}
+
+func async_dbm_new(dbm uintptr, num_worker_threads int) uintptr {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	return uintptr(unsafe.Pointer(C.tkrzw_async_dbm_new(xdbm, C.int32_t(num_worker_threads))))
+}
+
+func async_dbm_free(async uintptr) {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	C.tkrzw_async_dbm_free(xasync)
+}
+
+func async_dbm_get(async uintptr, key []byte) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xfuture := C.tkrzw_async_dbm_get(xasync, xkey_ptr, C.int32_t(len(key)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_get_multi(async uintptr, keys []string) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
+	xkeys := (*C.TkrzwStr)(unsafe.Pointer(C.malloc(C.size_t(xkeys_size + 1))))
+	defer C.tkrzw_free_str_array(xkeys, C.int32_t(len(keys)))
+	xkey_ptr := uintptr(unsafe.Pointer(xkeys))
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		xkey := (*C.TkrzwStr)(unsafe.Pointer(xkey_ptr))
+		xkey.ptr = C.CString(key)
+		xkey.size = C.int32_t(len(key))
+		xkey_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	xfuture := C.tkrzw_async_dbm_get_multi(xasync, xkeys, C.int32_t(len(keys)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_set(async uintptr, key []byte, value []byte, overwrite bool) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	xfuture := C.tkrzw_async_dbm_set(xasync, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)), C.bool(overwrite))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_remove(async uintptr, key []byte) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xfuture := C.tkrzw_async_dbm_remove(xasync, xkey_ptr, C.int32_t(len(key)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 
 func file_open(path string, writable bool, params string) (uintptr, *Status) {

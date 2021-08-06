@@ -406,6 +406,10 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, 2, len(records))
 	CheckEq(t, "first", records["one"])
 	CheckEq(t, "second", records["two"])
+	rawRecords := dbm.GetMulti(keys)
+	CheckEq(t, 2, len(rawRecords))
+	CheckEq(t, "first", rawRecords["one"])
+	CheckEq(t, "second", rawRecords["two"])
 	CheckEq(t, StatusNotFoundError, dbm.RemoveMulti(keys))
 	set1 := []KeyValuePair{KeyValuePair{[]byte("one"), []byte(nil)},
 		KeyValuePair{[]byte("two"), []byte(nil)}}
@@ -709,6 +713,30 @@ func TestDBMSearch(t *testing.T) {
 	CheckEq(t, 10, len(keys))
 	CheckEq(t, "00000010", keys[0])
 	CheckEq(t, StatusSuccess, dbm.Close())
+}
+
+func TestAsyncDBM(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.tkh")
+	// copyPath := path.Join(tmpDir, "casket-copy.tkh")
+	dbm := NewDBM()
+	status := dbm.Open(filePath, true, "truncate=true,num_buckets=5")
+	CheckEq(t, StatusSuccess, status)
+	async := NewAsyncDBM(dbm, 4)
+	CheckTrue(t, len(async.String()) > 0)
+	future := async.Set("one", "hop", false)
+	CheckTrue(t, len(future.String()) > 0)
+	future.Wait(0)
+	CheckTrue(t, future.Wait(1))
+	CheckEq(t, StatusSuccess, future.Get())
+	CheckEq(t, StatusSuccess, async.Set("two", "step", false).Get())
+	CheckEq(t, StatusSuccess, async.Set("three", "jump", false).Get())
+	CheckEq(t, StatusDuplicationError, async.Set("three", "jump", false).Get())
+	async.Set("three", "jump", false).Destruct()
+	CheckEq(t, 3, dbm.CountSimple())
+	async.Destruct()
+	dbm.Close()
 }
 
 func TestFile(t *testing.T) {

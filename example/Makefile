@@ -6,10 +6,12 @@ RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
 build :
 	$(RUNENV) $(GOCMD) build example1.go
 	$(RUNENV) $(GOCMD) build example2.go
+	$(RUNENV) $(GOCMD) build example3.go
 
 run :
 	$(RUNENV) $(GOCMD) run example1.go
 	$(RUNENV) $(GOCMD) run example2.go
+	$(RUNENV) $(GOCMD) run example3.go
 
 vet :
 	$(RUNENV) $(GOCMD) vet
