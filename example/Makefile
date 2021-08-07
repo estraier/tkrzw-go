@@ -7,11 +7,13 @@ build :
 	$(RUNENV) $(GOCMD) build example1.go
 	$(RUNENV) $(GOCMD) build example2.go
 	$(RUNENV) $(GOCMD) build example3.go
+	$(RUNENV) $(GOCMD) build example4.go
 
 run :
 	$(RUNENV) $(GOCMD) run example1.go
 	$(RUNENV) $(GOCMD) run example2.go
 	$(RUNENV) $(GOCMD) run example3.go
+	$(RUNENV) $(GOCMD) run example4.go
 
 vet :
 	$(RUNENV) $(GOCMD) vet
