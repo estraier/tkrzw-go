@@ -212,7 +212,7 @@ func (self *Iterator) GetValueStr() (string, *Status) {
 // Sets the value of the current record.
 //
 // @param value The value of the record.
-// @return: The result status.
+// @return The result status.
 func (self *Iterator) Set(value interface{}) *Status {
 	if self.iter == 0 {
 		return NewStatus2(StatusPreconditionError, "destructed Iterator")

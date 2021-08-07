@@ -41,7 +41,7 @@ typedef struct {
   char* value_ptr;
   int32_t value_size;
   RES_STATUS status;
-} RES_VALUE;
+} RES_BYTES;
 
 typedef struct {
   int64_t num;
@@ -59,10 +59,16 @@ typedef struct {
 } RES_BOOL;
 
 typedef struct {
+  TkrzwStr* values;
+  int32_t num_values;
+  RES_STATUS status;
+} RES_STRARRAY;
+
+typedef struct {
   TkrzwKeyValuePair* records;
   int32_t num_records;
   RES_STATUS status;
-} RES_MAP;
+} RES_STRMAP;
 
 typedef struct {
   char* key_ptr;
@@ -94,8 +100,8 @@ RES_STATUS do_future_get(TkrzwFuture* future) {
   return res;
 }
 
-RES_VALUE do_future_get_bytes(TkrzwFuture* future) {
-  RES_VALUE res;
+RES_BYTES do_future_get_bytes(TkrzwFuture* future) {
+  RES_BYTES res;
   res.value_ptr = tkrzw_future_get_str(future, &res.value_size);
   tkrzw_future_free(future);
   TkrzwStatus status = tkrzw_get_last_status();
@@ -114,9 +120,30 @@ RES_STR do_future_get_str(TkrzwFuture* future) {
   return res;
 }
 
-RES_MAP do_future_get_map(TkrzwFuture* future) {
-  RES_MAP res;
+RES_STRARRAY do_future_get_str_array(TkrzwFuture* future) {
+  RES_STRARRAY res;
+  res.values = tkrzw_future_get_str_array(future, &res.num_values);
+  tkrzw_future_free(future);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STRMAP do_future_get_str_map(TkrzwFuture* future) {
+  RES_STRMAP res;
   res.records = tkrzw_future_get_str_map(future, &res.num_records);
+  tkrzw_future_free(future);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_INT do_future_get_int(TkrzwFuture* future) {
+  RES_INT res;
+  res.num = tkrzw_future_get_int(future);
+  tkrzw_future_free(future);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -141,8 +168,8 @@ RES_STATUS do_dbm_close(TkrzwDBM* dbm) {
   return res;
 }
 
-RES_VALUE do_dbm_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
-  RES_VALUE res;
+RES_BYTES do_dbm_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
+  RES_BYTES res;
   res.value_ptr = tkrzw_dbm_get(dbm, key_ptr, key_size, &res.value_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -170,10 +197,10 @@ RES_STATUS do_dbm_set(
   return res;
 }
 
-RES_VALUE do_dbm_set_and_get(
+RES_BYTES do_dbm_set_and_get(
     TkrzwDBM* dbm, const char* key_ptr, int32_t key_size,
     const char* value_ptr, int32_t value_size, bool overwrite) {
-  RES_VALUE res;
+  RES_BYTES res;
   res.value_ptr = tkrzw_dbm_set_and_get(
       dbm, key_ptr, key_size, value_ptr, value_size, overwrite, &res.value_size);
   TkrzwStatus status = tkrzw_get_last_status();
@@ -201,8 +228,8 @@ RES_STATUS do_dbm_remove(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
   return res;
 }
 
-RES_VALUE do_dbm_remove_and_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
-  RES_VALUE res;
+RES_BYTES do_dbm_remove_and_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
+  RES_BYTES res;
   res.value_ptr = tkrzw_dbm_remove_and_get(dbm, key_ptr, key_size, &res.value_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -224,6 +251,17 @@ RES_STATUS do_dbm_append(
     const char* value_ptr, int32_t value_size, const char* delim_ptr, int32_t delim_size) {
   RES_STATUS res;
   tkrzw_dbm_append(dbm, key_ptr, key_size, value_ptr, value_size, delim_ptr, delim_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_append_multi(
+    TkrzwDBM* dbm, const TkrzwKeyValuePair* records, int32_t num_records,
+    const char* delim_ptr, int32_t delim_size) {
+  RES_STATUS res;
+  tkrzw_dbm_append_multi(dbm, records, num_records, delim_ptr, delim_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
@@ -372,8 +410,8 @@ RES_STATUS do_dbm_export_keys_as_lines(TkrzwDBM* dbm, TkrzwFile* dest_file) {
   return res;
 }
 
-RES_MAP do_dbm_inspect(TkrzwDBM* dbm) {
-  RES_MAP res;
+RES_STRMAP do_dbm_inspect(TkrzwDBM* dbm) {
+  RES_STRMAP res;
   res.records = tkrzw_dbm_inspect(dbm, &res.num_records);
   return res;
 }
@@ -479,8 +517,8 @@ RES_REC do_dbm_iter_get(TkrzwDBMIter* iter) {
   return res;
 }
 
-RES_VALUE do_dbm_iter_get_key(TkrzwDBMIter* iter) {
-  RES_VALUE res;
+RES_BYTES do_dbm_iter_get_key(TkrzwDBMIter* iter) {
+  RES_BYTES res;
   res.value_ptr = tkrzw_dbm_iter_get_key(iter, &res.value_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -488,8 +526,8 @@ RES_VALUE do_dbm_iter_get_key(TkrzwDBMIter* iter) {
   return res;
 }
 
-RES_VALUE do_dbm_iter_get_value(TkrzwDBMIter* iter) {
-  RES_VALUE res;
+RES_BYTES do_dbm_iter_get_value(TkrzwDBMIter* iter) {
+  RES_BYTES res;
   res.value_ptr = tkrzw_dbm_iter_get_value(iter, &res.value_size);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -682,11 +720,8 @@ func future_get(future uintptr) *Status {
 func future_get_bytes(future uintptr) ([]byte, *Status) {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
 	res := C.do_future_get_bytes(xfuture)
-	var value []byte = nil
-	if res.value_ptr != nil {
-		defer C.free(unsafe.Pointer(res.value_ptr))
-		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
-	}
+	defer C.free(unsafe.Pointer(res.value_ptr))
+	value := C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
 	status := convert_status(res.status)
 	return value, status
 }
@@ -694,18 +729,47 @@ func future_get_bytes(future uintptr) ([]byte, *Status) {
 func future_get_str(future uintptr) (string, *Status) {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
 	res := C.do_future_get_str(xfuture)
-	var value string
-	if res.str != nil {
-		defer C.free(unsafe.Pointer(res.str))
-		value = C.GoString(res.str)
-	}
+	defer C.free(unsafe.Pointer(res.str))
+	value := C.GoString(res.str)
 	status := convert_status(res.status)
 	return value, status
 }
 
+func future_get_array(future uintptr) ([][]byte, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_str_array(xfuture)
+	defer C.tkrzw_free_str_array(res.values, res.num_values)
+	values := make([][]byte, 0, res.num_values)
+	value_ptr := uintptr(unsafe.Pointer(res.values))
+	for i := C.int32_t(0); i < res.num_values; i++ {
+		xvalue := (*C.TkrzwStr)(unsafe.Pointer(value_ptr))
+		value := C.GoBytes(unsafe.Pointer(xvalue.ptr), xvalue.size)
+		values = append(values, value)
+		value_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	status := convert_status(res.status)
+	return values, status
+}
+
+func future_get_array_str(future uintptr) ([]string, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_str_array(xfuture)
+	defer C.tkrzw_free_str_array(res.values, res.num_values)
+	values := make([]string, 0, res.num_values)
+	value_ptr := uintptr(unsafe.Pointer(res.values))
+	for i := C.int32_t(0); i < res.num_values; i++ {
+		xvalue := (*C.TkrzwStr)(unsafe.Pointer(value_ptr))
+		value := C.GoStringN(xvalue.ptr, xvalue.size)
+		values = append(values, value)
+		value_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	status := convert_status(res.status)
+	return values, status
+}
+
 func future_get_map(future uintptr) (map[string][]byte, *Status) {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
-	res := C.do_future_get_map(xfuture)
+	res := C.do_future_get_str_map(xfuture)
 	defer C.tkrzw_free_str_map(res.records, res.num_records)
 	records := make(map[string][]byte)
 	rec_ptr := uintptr(unsafe.Pointer(res.records))
@@ -722,7 +786,7 @@ func future_get_map(future uintptr) (map[string][]byte, *Status) {
 
 func future_get_map_str(future uintptr) (map[string]string, *Status) {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
-	res := C.do_future_get_map(xfuture)
+	res := C.do_future_get_str_map(xfuture)
 	defer C.tkrzw_free_str_map(res.records, res.num_records)
 	records := make(map[string]string)
 	rec_ptr := uintptr(unsafe.Pointer(res.records))
@@ -735,6 +799,13 @@ func future_get_map_str(future uintptr) (map[string]string, *Status) {
 	}
 	status := convert_status(res.status)
 	return records, status
+}
+
+func future_get_int(future uintptr) (int64, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_int(xfuture)
+	status := convert_status(res.status)
+	return int64(res.num), status
 }
 
 func dbm_open(path string, writable bool, params string) (uintptr, *Status) {
@@ -937,6 +1008,28 @@ func dbm_append(dbm uintptr, key []byte, value []byte, delim []byte) *Status {
 	defer C.free(unsafe.Pointer(xdelim_ptr))
 	res := C.do_dbm_append(xdbm, xkey_ptr, C.int32_t(len(key)),
 		xvalue_ptr, C.int32_t(len(value)), xdelim_ptr, C.int32_t(len(delim)))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_append_multi(dbm uintptr, records map[string][]byte, delim []byte) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
+	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
+	for key, value := range records {
+		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
+		xrec.key_ptr = C.CString(key)
+		xrec.key_size = C.int32_t(len(key))
+		xrec.value_ptr = (*C.char)(C.CBytes(value))
+		xrec.value_size = C.int32_t(len(value))
+		xrec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	xdelim_ptr := (*C.char)(C.CBytes(delim))
+	defer C.free(unsafe.Pointer(xdelim_ptr))
+	res := C.do_dbm_append_multi(
+		xdbm, xrecs, C.int32_t(len(records)), xdelim_ptr, C.int32_t(len(delim)))
 	status := convert_status(res)
 	return status
 }
@@ -1373,11 +1466,228 @@ func async_dbm_set(async uintptr, key []byte, value []byte, overwrite bool) *Fut
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 
+func async_dbm_set_multi(async uintptr, records map[string][]byte, overwrite bool) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
+	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
+	for key, value := range records {
+		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
+		xrec.key_ptr = C.CString(key)
+		xrec.key_size = C.int32_t(len(key))
+		xrec.value_ptr = (*C.char)(C.CBytes(value))
+		xrec.value_size = C.int32_t(len(value))
+		xrec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	xfuture := C.tkrzw_async_dbm_set_multi(
+		xasync, xrecs, C.int32_t(len(records)), C.bool(overwrite))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
 func async_dbm_remove(async uintptr, key []byte) *Future {
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
 	xfuture := C.tkrzw_async_dbm_remove(xasync, xkey_ptr, C.int32_t(len(key)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_remove_multi(async uintptr, keys []string) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkeys_size := len(keys) * int(unsafe.Sizeof(C.TkrzwStr{}))
+	xkeys := (*C.TkrzwStr)(unsafe.Pointer(C.malloc(C.size_t(xkeys_size + 1))))
+	defer C.tkrzw_free_str_array(xkeys, C.int32_t(len(keys)))
+	xkey_ptr := uintptr(unsafe.Pointer(xkeys))
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		xkey := (*C.TkrzwStr)(unsafe.Pointer(xkey_ptr))
+		xkey.ptr = C.CString(key)
+		xkey.size = C.int32_t(len(key))
+		xkey_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	xfuture := C.tkrzw_async_dbm_remove_multi(xasync, xkeys, C.int32_t(len(keys)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_append(async uintptr, key []byte, value []byte, delim []byte) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	xdelim_ptr := (*C.char)(C.CBytes(delim))
+	defer C.free(unsafe.Pointer(xdelim_ptr))
+	xfuture := C.tkrzw_async_dbm_append(xasync, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)), xdelim_ptr, C.int32_t(len(delim)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_append_multi(async uintptr, records map[string][]byte, delim []byte) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
+	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
+	for key, value := range records {
+		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
+		xrec.key_ptr = C.CString(key)
+		xrec.key_size = C.int32_t(len(key))
+		xrec.value_ptr = (*C.char)(C.CBytes(value))
+		xrec.value_size = C.int32_t(len(value))
+		xrec_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	xdelim_ptr := (*C.char)(C.CBytes(delim))
+	defer C.free(unsafe.Pointer(xdelim_ptr))
+	xfuture := C.tkrzw_async_dbm_append_multi(
+		xasync, xrecs, C.int32_t(len(records)), xdelim_ptr, C.int32_t(len(delim)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_compare_exchange(
+	async uintptr, key []byte, expected []byte, desired []byte) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	var xexpected_ptr *C.char
+	var xexpected_size C.int32_t
+	if expected != nil {
+		xexpected_ptr = (*C.char)(C.CBytes(expected))
+		defer C.free(unsafe.Pointer(xexpected_ptr))
+		xexpected_size = C.int32_t(len(expected))
+	}
+	var xdesired_ptr *C.char
+	var xdesired_size C.int32_t
+	if desired != nil {
+		xdesired_ptr = (*C.char)(C.CBytes(desired))
+		defer C.free(unsafe.Pointer(xdesired_ptr))
+		xdesired_size = C.int32_t(len(desired))
+	}
+	xfuture := C.tkrzw_async_dbm_compare_exchange(xasync, xkey_ptr, C.int32_t(len(key)),
+		xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_increment(async uintptr, key []byte, inc int64, init int64) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xfuture := C.tkrzw_async_dbm_increment(
+		xasync, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_compare_exchange_multi(
+	async uintptr, expected []KeyValuePair, desired []KeyValuePair) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xexpected_size := len(expected) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xexpected := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xexpected_size + 1))))
+	defer C.tkrzw_free_str_map(xexpected, C.int32_t(len(expected)))
+	xexp_ptr := uintptr(unsafe.Pointer(xexpected))
+	for _, pair := range expected {
+		xexp := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xexp_ptr))
+		if pair.Key == nil {
+			xexp.key_ptr = nil
+			xexp.key_size = 0
+		} else {
+			xexp.key_ptr = (*C.char)(C.CBytes(pair.Key))
+			xexp.key_size = C.int32_t(len(pair.Key))
+		}
+		if pair.Value == nil {
+			xexp.value_ptr = nil
+			xexp.value_size = 0
+		} else {
+			xexp.value_ptr = (*C.char)(C.CBytes(pair.Value))
+			xexp.value_size = C.int32_t(len(pair.Value))
+		}
+		xexp_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	xdesired_size := len(desired) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
+	xdesired := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xdesired_size + 1))))
+	defer C.tkrzw_free_str_map(xdesired, C.int32_t(len(desired)))
+	xdes_ptr := uintptr(unsafe.Pointer(xdesired))
+	for _, pair := range desired {
+		xdes := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xdes_ptr))
+		if pair.Key == nil {
+			xdes.key_ptr = nil
+			xdes.key_size = 0
+		} else {
+			xdes.key_ptr = (*C.char)(C.CBytes(pair.Key))
+			xdes.key_size = C.int32_t(len(pair.Key))
+		}
+		if pair.Value == nil {
+			xdes.value_ptr = nil
+			xdes.value_size = 0
+		} else {
+			xdes.value_ptr = (*C.char)(C.CBytes(pair.Value))
+			xdes.value_size = C.int32_t(len(pair.Value))
+		}
+		xdes_ptr += unsafe.Sizeof(C.TkrzwKeyValuePair{})
+	}
+	xfuture := C.tkrzw_async_dbm_compare_exchange_multi(
+		xasync, xexpected, C.int32_t(len(expected)), xdesired, C.int32_t(len(desired)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_clear(async uintptr) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xfuture := C.tkrzw_async_dbm_clear(xasync)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_rebuild(async uintptr, params string) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xparams := C.CString(params)
+	defer C.free(unsafe.Pointer(xparams))
+	xfuture := C.tkrzw_async_dbm_rebuild(xasync, xparams)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_synchronize(async uintptr, hard bool, params string) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xparams := C.CString(params)
+	defer C.free(unsafe.Pointer(xparams))
+	xfuture := C.tkrzw_async_dbm_synchronize(xasync, C.bool(hard), xparams)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_copy_file_data(async uintptr, dest_path string) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xdest_path := C.CString(dest_path)
+	defer C.free(unsafe.Pointer(xdest_path))
+	xfuture := C.tkrzw_async_dbm_copy_file_data(xasync, xdest_path)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_export(async uintptr, dest_dbm uintptr) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xdest_dbm := (*C.TkrzwDBM)(unsafe.Pointer(dest_dbm))
+	xfuture := C.tkrzw_async_dbm_export(xasync, xdest_dbm)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_export_to_flat_records(async uintptr, dest_file uintptr) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xdest_file := (*C.TkrzwFile)(unsafe.Pointer(dest_file))
+	xfuture := C.tkrzw_async_dbm_export_to_flat_records(xasync, xdest_file)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_import_from_flat_records(async uintptr, src_file uintptr) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xsrc_file := (*C.TkrzwFile)(unsafe.Pointer(src_file))
+	xfuture := C.tkrzw_async_dbm_import_from_flat_records(xasync, xsrc_file)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_search(async uintptr, mode string, pattern string, capacity int) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xmode := C.CString(mode)
+	defer C.free(unsafe.Pointer(xmode))
+	xpattern := C.CString(pattern)
+	defer C.free(unsafe.Pointer(xpattern))
+	xfuture := C.tkrzw_async_dbm_search(
+		xasync, xmode, xpattern, C.int32_t(len(pattern)), C.int32_t(capacity))
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 

@@ -283,7 +283,7 @@ func (self *DBM) SetAndGetStr(key interface{}, value interface{},
 	return nil, status
 }
 
-// Sets multiple records of the keyword arguments.
+// Sets multiple records.
 //
 // @param records Records to store.
 // @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
@@ -295,11 +295,11 @@ func (self *DBM) SetMulti(records map[string][]byte, overwrite bool) *Status {
 	return dbm_set_multi(self.dbm, records, overwrite)
 }
 
-// Sets multiple records of the keyword arguments, with string data
+// Sets multiple records, with string data.
 //
 // @param records Records to store.
 // @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
-// @return The result status.
+// @return The result status.  If there are records avoiding overwriting, StatusDuplicationError is set.
 func (self *DBM) SetMultiStr(records map[string]string, overwrite bool) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
@@ -352,7 +352,7 @@ func (self *DBM) RemoveAndGetStr(key interface{}) (*string, *Status) {
 // Removes records of keys.
 //
 // @param key The keys of the records.
-// @return:The result status.  If there are missing records, StatusNotFoundError is returned.
+// @return The result status.  If there are missing records, StatusNotFoundError is returned.
 func (self *DBM) RemoveMulti(keys []string) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
@@ -373,6 +373,38 @@ func (self *DBM) Append(key interface{}, value interface{}, delim interface{}) *
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_append(self.dbm, ToByteArray(key), ToByteArray(value), ToByteArray(delim))
+}
+
+// Appends data to multiple records.
+//
+// @param records Records to append.
+// @param delim The delimiter to put after the existing record.
+// @return The result status.
+//
+// If there's no existing record, the value is set without the delimiter.
+func (self *DBM) AppendMulti(records map[string][]byte, delim interface{}) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_append_multi(self.dbm, records, ToByteArray(delim))
+}
+
+// Appends data to multiple records, with string data.
+//
+// @param records Records to append.
+// @param delim The delimiter to put after the existing record.
+// @return The result status.
+//
+// If there's no existing record, the value is set without the delimiter.
+func (self *DBM) AppendMultiStr(records map[string]string, delim interface{}) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	rawRecords := make(map[string][]byte)
+	for key, value := range records {
+		rawRecords[key] = []byte(value)
+	}
+	return dbm_append_multi(self.dbm, rawRecords, ToByteArray(delim))
 }
 
 // Compares the value of a record and exchanges if the condition meets.
@@ -574,6 +606,7 @@ func (self *DBM) ShouldBeRebuiltSimple() bool {
 //
 // @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
 // @param params Optional parameters.
+// @return The result status.
 //
 // Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
 func (self *DBM) Synchronize(hard bool, params string) *Status {

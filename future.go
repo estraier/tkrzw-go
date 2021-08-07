@@ -98,6 +98,34 @@ func (self *Future) GetStr() (string, *Status) {
 	return value, status
 }
 
+// Gets the extra array of byte arrays and the status of the operation.
+//
+// @return An array of byte arrays and the result status.
+//
+// The internal resource is released by this method.  "Wait" and "Get" faminly cannot be called after calling this method.
+func (self *Future) GetArray() ([][]byte, *Status) {
+	if self.future == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "destructed object")
+	}
+	value, status := future_get_array(self.future)
+	self.future = 0
+	return value, status
+}
+
+// Gets the extra array of strings and the status of the operation.
+//
+// @return An array of strings and the result status.
+//
+// The internal resource is released by this method.  "Wait" and "Get" faminly cannot be called after calling this method.
+func (self *Future) GetArrayStr() ([]string, *Status) {
+	if self.future == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "destructed object")
+	}
+	value, status := future_get_array_str(self.future)
+	self.future = 0
+	return value, status
+}
+
 // Gets the extra byte array map and the status of the operation.
 //
 // @return A byte array map and the result status.
@@ -122,6 +150,20 @@ func (self *Future) GetMapStr() (map[string]string, *Status) {
 		return nil, NewStatus2(StatusPreconditionError, "destructed object")
 	}
 	value, status := future_get_map_str(self.future)
+	self.future = 0
+	return value, status
+}
+
+// Gets the extra integer data and the status of the operation.
+//
+// @return The integer value and the result status.
+//
+// The internal resource is released by this method.  "Wait" and "Get" faminly cannot be called after calling this method.
+func (self *Future) GetInt() (int64, *Status) {
+	if self.future == 0 {
+		return 0, NewStatus2(StatusPreconditionError, "destructed object")
+	}
+	value, status := future_get_int(self.future)
 	self.future = 0
 	return value, status
 }

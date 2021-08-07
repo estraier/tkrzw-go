@@ -94,6 +94,34 @@ func (self *AsyncDBM) Set(key interface{}, value interface{}, overwrite bool) *F
 	return async_dbm_set(self.async, ToByteArray(key), ToByteArray(value), overwrite)
 }
 
+// Sets multiple records.
+//
+// @param records Records to store.
+// @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+// @return The future for the result status.  If there are records avoiding overwriting, StatusDuplicationError is set.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) SetMulti(records map[string][]byte, overwrite bool) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_set_multi(self.async, records, overwrite)
+}
+
+// Sets multiple records, with string data.
+//
+// @param records Records to store.
+// @param overwrite Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+// @return The future for the result status.  If there are records avoiding overwriting, StatusDuplicationError is set.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) SetMultiStr(records map[string]string, overwrite bool) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	rawRecords := make(map[string][]byte)
+	for key, value := range records {
+		rawRecords[key] = []byte(value)
+	}
+	return async_dbm_set_multi(self.async, rawRecords, overwrite)
+}
+
 // Removes a record of a key.
 //
 // @param key The key of the record.
@@ -103,6 +131,237 @@ func (self *AsyncDBM) Remove(key interface{}) *Future {
 		return &Future{0}
 	}
 	return async_dbm_remove(self.async, ToByteArray(key))
+}
+
+// Removes records of keys.
+//
+// @param key The keys of the records.
+// @return The future for the result status.  If there are missing records, StatusNotFoundError is set.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) RemoveMulti(keys []string) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_remove_multi(self.async, keys)
+}
+
+// Appends data at the end of a record of a key.
+//
+// @param key The key of the record.
+// @param value The value to append.
+// @param delim The delimiter to put after the existing record.
+// @return The future for the result status.
+//
+// If there's no existing record, the value is set without the delimiter.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) Append(key interface{}, value interface{}, delim interface{}) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_append(self.async, ToByteArray(key), ToByteArray(value), ToByteArray(delim))
+}
+
+// Appends data to multiple records.
+//
+// @param records Records to append.
+// @param delim The delimiter to put after the existing record.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+//
+// If there's no existing record, the value is set without the delimiter.
+func (self *AsyncDBM) AppendMulti(records map[string][]byte, delim interface{}) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_append_multi(self.async, records, ToByteArray(delim))
+}
+
+// Appends data to multiple records, with string data.
+//
+// @param records Records to append.
+// @param delim The delimiter to put after the existing record.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+//
+// If there's no existing record, the value is set without the delimiter.
+func (self *AsyncDBM) AppendMultiStr(records map[string]string, delim interface{}) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	rawRecords := make(map[string][]byte)
+	for key, value := range records {
+		rawRecords[key] = []byte(value)
+	}
+	return async_dbm_append_multi(self.async, rawRecords, ToByteArray(delim))
+}
+
+// Compares the value of a record and exchanges if the condition meets.
+//
+// @param key The key of the record.
+// @param expected The expected value.  If it is nil, no existing record is expected.
+// @param desired The desired value.  If it is nil, the record is to be removed.
+// @return The future for the result status.  If the condition doesn't meet, StatusInfeasibleError is set.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) CompareExchange(
+	key interface{}, expected interface{}, desired interface{}) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	var rawExpected []byte
+	if expected != nil {
+		rawExpected = ToByteArray(expected)
+	}
+	var rawDesired []byte
+	if desired != nil {
+		rawDesired = ToByteArray(desired)
+	}
+	return async_dbm_compare_exchange(self.async, ToByteArray(key), rawExpected, rawDesired)
+}
+
+// Increments the numeric value of a record.
+//
+// @param key The key of the record.
+// @param inc The incremental value.  If it is Int64Min, the current value is not changed and a new record is not created.
+// @param init The initial value.
+// @return The future for the result status.and the current value.  The result should be gotten by the GetInt method of the future.
+func (self *AsyncDBM) Increment(key interface{}, inc interface{}, init interface{}) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_increment(self.async, ToByteArray(key), ToInt(inc), ToInt(init))
+}
+
+// Compares the values of records and exchanges if the condition meets.
+//
+// @param expected A sequence of pairs of the record keys and their expected values.  If the value is nil, no existing record is expected.
+// @param desired A sequence of pairs of the record keys and their desired values.  If the value is nil, the record is to be removed.
+// @return The future for the result status.  If the condition doesn't meet, StatusInfeasibleError is set.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) CompareExchangeMulti(
+	expected []KeyValuePair, desired []KeyValuePair) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_compare_exchange_multi(self.async, expected, desired)
+}
+
+// Compares the values of records and exchanges if the condition meets, using string data.
+//
+// @param expected A sequence of pairs of the record keys and their expected values.  If the value is an empty string, no existing record is expected.
+// @param desired A sequence of pairs of the record keys and their desired values.  If the value is an empty string, the record is to be removed.
+// @return The future for The result status.  If the condition doesn't meet, StatusInfeasibleError is set.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) CompareExchangeMultiStr(
+	expected []KeyValueStrPair, desired []KeyValueStrPair) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	rawExpected := make([]KeyValuePair, 0, len(expected))
+	for _, record := range expected {
+		var value []byte
+		if len(record.Value) > 0 {
+			value = []byte(record.Value)
+		}
+		rawExpected = append(rawExpected, KeyValuePair{[]byte(record.Key), value})
+	}
+	rawDesired := make([]KeyValuePair, 0, len(desired))
+	for _, record := range desired {
+		var value []byte
+		if len(record.Value) > 0 {
+			value = []byte(record.Value)
+		}
+		rawDesired = append(rawDesired, KeyValuePair{[]byte(record.Key), value})
+	}
+	return async_dbm_compare_exchange_multi(self.async, rawExpected, rawDesired)
+}
+
+// Removes all records.
+//
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) Clear() *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_clear(self.async)
+}
+
+// Rebuilds the entire database.
+//
+// @param params Optional parameters.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+//
+// The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+func (self *AsyncDBM) Rebuild(params string) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_rebuild(self.async, params)
+}
+
+// Synchronizes the content of the database to the file system.
+//
+// @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+// @param params Optional parameters.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+//
+// Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
+func (self *AsyncDBM) Synchronize(hard bool, params string) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_synchronize(self.async, hard, params)
+}
+
+// Copies the content of the database file to another file.
+//
+// @param destPath A path to the destination file.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) CopyFileData(destPath string) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_copy_file_data(self.async, destPath)
+}
+
+// Exports all records to another database.
+//
+// @param destDBM The destination database.  The lefetime of the database object must last until the task finishes.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) Export(destDBM *DBM) *Future {
+	if self.async == 0 || destDBM.dbm == 0 {
+		return &Future{0}
+	}
+	return async_dbm_export(self.async, destDBM.dbm)
+}
+
+// Exports all records of a database to a flat record file.
+//
+// @param file: The file object to write records in.  The lefetime of the file object must last until the task finishes.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+//
+// A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
+func (self *AsyncDBM) ExportToFlatRecords(destFile *File) *Future {
+	if self.async == 0 || destFile.file == 0 {
+		return &Future{0}
+	}
+	return async_dbm_export_to_flat_records(self.async, destFile.file)
+}
+
+// Imports records to a database from a flat record file.
+//
+// @param file The file object to read records from.  The lefetime of the file object must last until the task finishes.
+// @return The future for the result status.  The result should be gotten by the Get method of the future.
+func (self *AsyncDBM) ImportFromFlatRecords(srcFile *File) *Future {
+	if self.async == 0 || srcFile.file == 0 {
+		return &Future{0}
+	}
+	return async_dbm_import_from_flat_records(self.async, srcFile.file)
+}
+
+// Searches the database and get keys which match a pattern.
+//
+// @param mode The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts keys whose edit distance to the binary pattern is the least.
+// @param pattern The pattern for matching.
+// @param capacity The maximum records to obtain.  0 means unlimited.
+// @return The future for a list of keys matching the condition and the result status.  The result should be gotten by the GetArray or GetArrayStr method of the future.
+func (self *AsyncDBM) Search(mode string, pattern string, capacity int) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_search(self.async, mode, pattern, capacity)
 }
 
 // END OF FILE
