@@ -42,8 +42,10 @@ const (
 	StatusDuplicationError = StatusCode(10)
 	// Error that internal data are broken.
 	StatusBrokenDataError = StatusCode(11)
+	// Error caused by networking failure.
+	StatusNetworkError = StatusCode(12)
 	// Generic error caused by the application logic.
-	StatusApplicationError = StatusCode(12)
+	StatusApplicationError = StatusCode(13)
 )
 
 // Status of operations.
@@ -84,6 +86,8 @@ func StatusCodeName(code StatusCode) string {
 		return "DUPLICATION_ERROR"
 	case StatusBrokenDataError:
 		return "BROKEN_DATA_ERROR"
+	case StatusNetworkError:
+		return "NETWORK_ERROR"
 	case StatusApplicationError:
 		return "APPLICATION_ERROR"
 	}
