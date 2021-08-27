@@ -571,6 +571,11 @@ func (self *DBM) Clear() *Status {
 // @return The result status.
 //
 // The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+//
+// In addition, HashDBM, TreeDBM, and SkipDBM supports the following parameters.
+//
+// - skip_broken_records (bool): If true, the operation continues even if there are broken records which can be skipped.
+// - sync_hard (bool): If true, physical synchronization with the hardware is done before finishing the rebuilt file.
 func (self *DBM) Rebuild(params string) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")

@@ -283,7 +283,7 @@ func (self *AsyncDBM) Clear() *Future {
 // @param params Optional parameters.
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
 //
-// The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+// The parameters work in the same way as with DBM::Rebuild.
 func (self *AsyncDBM) Rebuild(params string) *Future {
 	if self.async == 0 {
 		return &Future{0}
@@ -297,7 +297,7 @@ func (self *AsyncDBM) Rebuild(params string) *Future {
 // @param params Optional parameters.
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
 //
-// Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
+// The parameters work in the same way as with DBM::Synchronize.
 func (self *AsyncDBM) Synchronize(hard bool, params string) *Future {
 	if self.async == 0 {
 		return &Future{0}
