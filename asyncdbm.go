@@ -308,12 +308,13 @@ func (self *AsyncDBM) Synchronize(hard bool, params string) *Future {
 // Copies the content of the database file to another file.
 //
 // @param destPath A path to the destination file.
+// @param syncHard True to do physical synchronization with the hardware.
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
-func (self *AsyncDBM) CopyFileData(destPath string) *Future {
+func (self *AsyncDBM) CopyFileData(destPath string, syncHard bool) *Future {
 	if self.async == 0 {
 		return &Future{0}
 	}
-	return async_dbm_copy_file_data(self.async, destPath)
+	return async_dbm_copy_file_data(self.async, destPath, syncHard)
 }
 
 // Exports all records to another database.

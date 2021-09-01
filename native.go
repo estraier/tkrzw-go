@@ -365,9 +365,9 @@ RES_STATUS do_dbm_synchronize(TkrzwDBM* dbm, bool hard, const char* params) {
   return res;
 }
 
-RES_STATUS do_dbm_copy_file_data(TkrzwDBM* dbm, const char* dest_path) {
+RES_STATUS do_dbm_copy_file_data(TkrzwDBM* dbm, const char* dest_path, bool sync_hard) {
   RES_STATUS res;
-  tkrzw_dbm_copy_file_data(dbm, dest_path);
+  tkrzw_dbm_copy_file_data(dbm, dest_path, sync_hard);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
@@ -1180,11 +1180,11 @@ func dbm_synchronize(dbm uintptr, hard bool, params string) *Status {
 	return status
 }
 
-func dbm_copy_file_data(dbm uintptr, dest_path string) *Status {
+func dbm_copy_file_data(dbm uintptr, dest_path string, sync_hard bool) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xdest_path := C.CString(dest_path)
 	defer C.free(unsafe.Pointer(xdest_path))
-	res := C.do_dbm_copy_file_data(xdbm, xdest_path)
+	res := C.do_dbm_copy_file_data(xdbm, xdest_path, C.bool(sync_hard))
 	status := convert_status(res)
 	return status
 }
@@ -1651,11 +1651,11 @@ func async_dbm_synchronize(async uintptr, hard bool, params string) *Future {
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 
-func async_dbm_copy_file_data(async uintptr, dest_path string) *Future {
+func async_dbm_copy_file_data(async uintptr, dest_path string, sync_hard bool) *Future {
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
 	xdest_path := C.CString(dest_path)
 	defer C.free(unsafe.Pointer(xdest_path))
-	xfuture := C.tkrzw_async_dbm_copy_file_data(xasync, xdest_path)
+	xfuture := C.tkrzw_async_dbm_copy_file_data(xasync, xdest_path, C.bool(sync_hard))
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 

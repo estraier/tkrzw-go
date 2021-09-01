@@ -100,8 +100,8 @@ func (self *DBM) String() string {
 // - restore_mode (string): How to restore the database file: "RESTORE_SYNC" to restore to the last synchronized state, "RESTORE_READ_ONLY" to make the database read-only, or "RESTORE_NOOP" to do nothing.  By default, as many records as possible are restored.
 // - fbp_capacity (int): The capacity of the free block pool.
 // - min_read_size (int): The minimum reading size to read a record.
-// - lock_mem_buckets (int): Positive to lock the memory for the hash buckets.
-// - cache_buckets (int): Positive to cache the hash buckets on memory.
+// - lock_mem_buckets (bool): True to lock the memory for the hash buckets.
+// - cache_buckets (bool): True to cache the hash buckets on memory.
 //
 // For TreeDBM, all optional parameters for HashDBM are available.  In addition, these optional parameters are supported.
 //
@@ -624,12 +624,13 @@ func (self *DBM) Synchronize(hard bool, params string) *Status {
 // Copies the content of the database file to another file.
 //
 // @param destPath A path to the destination file.
+// @param syncHard True to do physical synchronization with the hardware.
 // @return The result status.
-func (self *DBM) CopyFileData(destPath string) *Status {
+func (self *DBM) CopyFileData(destPath string, syncHard bool) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
-	return dbm_copy_file_data(self.dbm, destPath)
+	return dbm_copy_file_data(self.dbm, destPath, syncHard)
 }
 
 // Exports all records to another database.
