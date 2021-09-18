@@ -562,6 +562,30 @@ func (self *DBM) GetFilePathSimple() string {
 	return ""
 }
 
+// Gets the timestamp in seconds of the last modified time.
+//
+// @return The timestamp in seconds of the last modified time and the result status.
+func (self *DBM) GetTimestamp() (float64, *Status) {
+	if self.dbm == 0 {
+		return -1, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_get_timestamp(self.dbm)
+}
+
+// Gets the timestamp in seconds of the last modified time, in a simple way.
+//
+// @return The timestamp in seconds of the last modified, or -1 on failure.
+func (self *DBM) GetTimestampSimple() float64 {
+	if self.dbm == 0 {
+		return -1
+	}
+	timestamp, status := dbm_get_timestamp(self.dbm)
+	if status.code == StatusSuccess {
+		return timestamp
+	}
+	return -1
+}
+
 // Removes all records.
 //
 // @return The result status.

@@ -49,6 +49,11 @@ typedef struct {
 } RES_INT;
 
 typedef struct {
+  double num;
+  RES_STATUS status;
+} RES_FLOAT;
+
+typedef struct {
   char* str;
   RES_STATUS status;
 } RES_STR;
@@ -323,6 +328,15 @@ RES_INT do_dbm_get_file_size(TkrzwDBM* dbm) {
 RES_STR do_dbm_get_file_path(TkrzwDBM* dbm) {
   RES_STR res;
   res.str = tkrzw_dbm_get_file_path(dbm);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_FLOAT do_dbm_get_timestamp(TkrzwDBM* dbm) {
+  RES_FLOAT res;
+  res.num = tkrzw_dbm_get_timestamp(dbm);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -1146,6 +1160,13 @@ func dbm_get_file_path(dbm uintptr) (string, *Status) {
 	}
 	status := convert_status(res.status)
 	return path, status
+}
+
+func dbm_get_timestamp(dbm uintptr) (float64, *Status) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	res := C.do_dbm_get_timestamp(xdbm)
+	status := convert_status(res.status)
+	return float64(res.num), status
 }
 
 func dbm_clear(dbm uintptr) *Status {

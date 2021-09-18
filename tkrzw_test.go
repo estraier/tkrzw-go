@@ -448,6 +448,10 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, filePath, gotFilePath)
 	CheckEq(t, filePath, dbm.GetFilePathSimple())
+	timestamp, status := dbm.GetTimestamp()
+	CheckEq(t, StatusSuccess, status)
+	CheckTrue(t, timestamp > 0)
+	CheckEq(t, timestamp, dbm.GetTimestampSimple())
 	for i := 1; i <= 10; i++ {
 		CheckTrue(t, dbm.Set(i, i*i, true).IsOK())
 	}
