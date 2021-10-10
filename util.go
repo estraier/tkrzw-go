@@ -232,7 +232,7 @@ func EditDistanceLev(a string, b string, utf bool) int {
 
 // Parses a parameter string to make a parameter string map.
 //
-// @param expr A parameter string in "key=value,key=value" format.
+// @param expr A parameter string in "name=value,name=value,..." format.
 // @return The string map of the parameters.
 func ParseParams(expr string) map[string]string {
 	params := make(map[string]string)
