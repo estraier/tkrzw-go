@@ -48,7 +48,7 @@ func (self *File) String() string {
 //
 // @param path A path of the file.
 // @param writable If true, the file is writable.  If false, it is read-only.
-// @param params Optional parameters.
+// @param params Optional parameters.  If it is nil, it is ignored.
 // @return The result status.
 //
 // The optional parameters can include options for the file opening operation.

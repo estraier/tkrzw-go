@@ -280,7 +280,7 @@ func (self *AsyncDBM) Clear() *Future {
 
 // Rebuilds the entire database.
 //
-// @param params Optional parameters.
+// @param params Optional parameters.  If it is nil, it is ignored.
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
 //
 // The parameters work in the same way as with DBM::Rebuild.
@@ -294,7 +294,7 @@ func (self *AsyncDBM) Rebuild(params map[string]string) *Future {
 // Synchronizes the content of the database to the file system.
 //
 // @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
-// @param params Optional parameters.
+// @param params Optional parameters.  If it is nil, it is ignored.
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
 //
 // The parameters work in the same way as with DBM::Synchronize.
