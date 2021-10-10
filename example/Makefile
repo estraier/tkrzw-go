@@ -23,4 +23,4 @@ fmt :
 
 clean :
 	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni \
-	  example1 example2
+	  example1 example2 example3 example4
