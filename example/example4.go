@@ -34,7 +34,7 @@ func main() {
 
 	// Evaluates asynchrnouns operations with goroutines and channels.
 	fmt.Println("Setting with goroutines and channels ...")
-	dbm.Open(path, true, params).OrDie()
+	dbm.Open(path, true, tkrzw.ParseParams(params)).OrDie()
 	startTime := time.Now()
 	for batchID := 0; batchID < numBatches; batchID++ {
 		dones := make([]chan *tkrzw.Status, 0, numRecords)
@@ -56,7 +56,7 @@ func main() {
 
 	// Evaluates asynchrnouns operations with goroutines and channels.
 	fmt.Println("Setting with the asynchrnouns API ...")
-	dbm.Open(path, true, params).OrDie()
+	dbm.Open(path, true, tkrzw.ParseParams(params)).OrDie()
 	async := tkrzw.NewAsyncDBM(dbm, 2)
 	startTime = time.Now()
 	for batchID := 0; batchID < numBatches; batchID++ {

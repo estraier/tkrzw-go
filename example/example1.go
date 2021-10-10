@@ -21,7 +21,8 @@ import (
 func main() {
 	// Prepares the database.
 	dbm := tkrzw.NewDBM()
-	dbm.Open("casket.tkh", true, "truncate=true,num_buckets=100")
+	dbm.Open("casket.tkh", true,
+		tkrzw.ParseParams("truncate=true,num_buckets=100"))
 
 	// Sets records.
 	// Keys and values are implicitly converted into bytes.

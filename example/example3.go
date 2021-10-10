@@ -21,7 +21,8 @@ import (
 func main() {
 	// Prepares the database.
 	dbm := tkrzw.NewDBM()
-	dbm.Open("casket.tkt", true, "truncate=true,num_buckets=100")
+	dbm.Open("casket.tkt", true, tkrzw.ParseParams(
+		"truncate=true,num_buckets=100"))
 	defer dbm.Close()
 
 	// Prepares the asynchronous adapter with 4 worker threads.

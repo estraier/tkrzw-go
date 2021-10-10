@@ -40,7 +40,8 @@ The following code is a simple example to use a database, without checking error
  func main() {
    // Prepares the database.
    dbm := tkrzw.NewDBM()
-   dbm.Open("casket.tkh", true, "truncate=true,num_buckets=100")
+   dbm.Open("casket.tkh", true,
+     tkrzw.ParseParams("truncate=true,num_buckets=100"))
 
    // Sets records.
    // Keys and values are implicitly converted into bytes.
@@ -76,7 +77,8 @@ The following code is an advanced example where a so-called long transaction is 
    // The method OrDie causes panic if the status is not success.
    // You should write your own error handling in large scale programs.
    dbm := tkrzw.NewDBM()
-   dbm.Open("casket.tkt", true, "truncate=true,num_buckets=100").OrDie()
+   dbm.Open("casket.tkt", true,
+     tkrzw.ParseParams("truncate=true,num_buckets=100")).OrDie()
 
    // Closes the database for sure and checks the error too.
    defer func() { dbm.Close().OrDie() }()
@@ -150,7 +152,8 @@ The following code is a typical example of the asynchronous API.  The AsyncDBM c
  func main() {
    // Prepares the database.
    dbm := tkrzw.NewDBM()
-   dbm.Open("casket.tkt", true, "truncate=true,num_buckets=100")
+   dbm.Open("casket.tkt", true,
+     tkrzw.ParseParams("truncate=true,num_buckets=100"))
    defer dbm.Close()
 
    // Prepares the asynchronous adapter with 4 worker threads.

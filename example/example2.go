@@ -23,7 +23,8 @@ func main() {
 	// The method OrDie causes panic if the status is not success.
 	// You should write your own error handling in large scale programs.
 	dbm := tkrzw.NewDBM()
-	dbm.Open("casket.tkt", true, "truncate=true,num_buckets=100").OrDie()
+	dbm.Open("casket.tkt", true,
+		tkrzw.ParseParams("truncate=true,num_buckets=100")).OrDie()
 
 	// Closes the database for sure and checks the error too.
 	defer func() { dbm.Close().OrDie() }()
