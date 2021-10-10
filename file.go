@@ -65,7 +65,7 @@ func (self *File) String() string {
 //
 // - block_size (int): The block size to which all blocks should be aligned.
 // - access_options (str): Values separated by colon.  "direct" for direct I/O.  "sync" for synchrnizing I/O, "padding" for file size alignment by padding, "pagecache" for the mini page cache in the process.
-func (self *File) Open(path string, writable bool, params string) *Status {
+func (self *File) Open(path string, writable bool, params map[string]string) *Status {
 	if self.file != 0 {
 		return NewStatus2(StatusPreconditionError, "opened file")
 	}

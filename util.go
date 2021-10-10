@@ -16,6 +16,7 @@ package tkrzw
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Converts any object into a string.
@@ -227,6 +228,27 @@ func SecondaryHash(data []byte, num_shards uint64) uint64 {
 // @return The Levenshtein edit distance of the two strings.
 func EditDistanceLev(a string, b string, utf bool) int {
 	return edit_distance_lev(a, b, utf)
+}
+
+// Parses a parameter string to make a parameter string map.
+//
+// @param expr A parameter string in "key=value,key=value" format.
+// @return The string map of the parameters.
+func ParseParams(expr string) map[string]string {
+	params := make(map[string]string)
+	fields := strings.Split(expr, ",")
+	for _, field := range fields {
+		columns := strings.SplitN(field, "=", 2)
+		if len(columns) != 2 {
+			continue
+		}
+		name := strings.TrimSpace(columns[0])
+		value := strings.TrimSpace(columns[1])
+		if len(name) > 0 {
+			params[name] = value
+		}
+	}
+	return params
 }
 
 // END OF FILE

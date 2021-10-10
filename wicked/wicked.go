@@ -42,7 +42,7 @@ func main() {
 	fmt.Println()
 	startMemUsage := tkrzw.GetMemoryUsage()
 	dbm := tkrzw.NewDBM()
-	dbm.Open(path, true, openParams).OrDie()
+	dbm.Open(path, true, tkrzw.ParseParams(openParams)).OrDie()
 	fmt.Println("Setting:")
 	startTime := time.Now()
 	task := func(thid int, done chan<- bool) {
@@ -52,11 +52,11 @@ func main() {
 			key := fmt.Sprintf("%d", keyNum)
 			value := fmt.Sprintf("%d", i)
 			if random.Intn(numIterations/2) == 0 {
-				dbm.Rebuild("").OrDie()
+				dbm.Rebuild(tkrzw.ParseParams("")).OrDie()
 			} else if random.Intn(numIterations/2) == 0 {
 				dbm.Clear().OrDie()
 			} else if random.Intn(numIterations/2) == 0 {
-				dbm.Synchronize(false, "").OrDie()
+				dbm.Synchronize(false, tkrzw.ParseParams("")).OrDie()
 			} else if random.Intn(100) == 0 {
 				iter := dbm.MakeIterator()
 				if dbm.IsOrdered() && random.Intn(3) == 0 {
@@ -123,7 +123,7 @@ func main() {
 	for _, done := range dones {
 		<-done
 	}
-	dbm.Synchronize(false, "").OrDie()
+	dbm.Synchronize(false, tkrzw.ParseParams("")).OrDie()
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime).Seconds()
 	memUsage := tkrzw.GetMemoryUsage() - startMemUsage

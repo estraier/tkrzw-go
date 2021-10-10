@@ -146,7 +146,7 @@ func (self *DBM) String() string {
 // - access_options (str): Values separated by colon.  "direct" for direct I/O.  "sync" for synchrnizing I/O, "padding" for file size alignment by padding, "pagecache" for the mini page cache in the process.
 //
 // If the optional parameter "num_shards" is set, the database is sharded into multiple shard files.  Each file has a suffix like "-00003-of-00015".  If the value is 0, the number of shards is set by patterns of the existing files, or 1 if they doesn't exist.
-func (self *DBM) Open(path string, writable bool, params string) *Status {
+func (self *DBM) Open(path string, writable bool, params map[string]string) *Status {
 	if self.dbm != 0 {
 		return NewStatus2(StatusPreconditionError, "opened database")
 	}
@@ -607,7 +607,7 @@ func (self *DBM) Clear() *Status {
 //
 // - skip_broken_records (bool): If true, the operation continues even if there are broken records which can be skipped.
 // - sync_hard (bool): If true, physical synchronization with the hardware is done before finishing the rebuilt file.
-func (self *DBM) Rebuild(params string) *Status {
+func (self *DBM) Rebuild(params map[string]string) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
@@ -645,7 +645,7 @@ func (self *DBM) ShouldBeRebuiltSimple() bool {
 // @return The result status.
 //
 // Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
-func (self *DBM) Synchronize(hard bool, params string) *Status {
+func (self *DBM) Synchronize(hard bool, params map[string]string) *Status {
 	if self.dbm == 0 {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}

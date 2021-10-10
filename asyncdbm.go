@@ -284,7 +284,7 @@ func (self *AsyncDBM) Clear() *Future {
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
 //
 // The parameters work in the same way as with DBM::Rebuild.
-func (self *AsyncDBM) Rebuild(params string) *Future {
+func (self *AsyncDBM) Rebuild(params map[string]string) *Future {
 	if self.async == 0 {
 		return &Future{0}
 	}
@@ -298,7 +298,7 @@ func (self *AsyncDBM) Rebuild(params string) *Future {
 // @return The future for the result status.  The result should be gotten by the Get method of the future.
 //
 // The parameters work in the same way as with DBM::Synchronize.
-func (self *AsyncDBM) Synchronize(hard bool, params string) *Future {
+func (self *AsyncDBM) Synchronize(hard bool, params map[string]string) *Future {
 	if self.async == 0 {
 		return &Future{0}
 	}

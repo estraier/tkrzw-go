@@ -652,6 +652,7 @@ RES_STR do_file_get_path(TkrzwFile* file) {
 import "C"
 
 import (
+	"strings"
 	"unsafe"
 )
 
@@ -712,6 +713,14 @@ func convert_status(res C.RES_STATUS) *Status {
 	}
 	defer C.free(unsafe.Pointer(res.message))
 	return NewStatus2(StatusCode(res.code), C.GoString(res.message))
+}
+
+func join_params(params map[string]string) string {
+	fields := make([]string, 0, 4)
+	for name, value := range params {
+		fields = append(fields, name+"="+value)
+	}
+	return strings.Join(fields, ",")
 }
 
 func future_free(future uintptr) {
@@ -822,10 +831,10 @@ func future_get_int(future uintptr) (int64, *Status) {
 	return int64(res.num), status
 }
 
-func dbm_open(path string, writable bool, params string) (uintptr, *Status) {
+func dbm_open(path string, writable bool, params map[string]string) (uintptr, *Status) {
 	xpath := C.CString(path)
 	defer C.free(unsafe.Pointer(xpath))
-	xparams := C.CString(params)
+	xparams := C.CString(join_params(params))
 	defer C.free(unsafe.Pointer(xparams))
 	res := C.do_dbm_open(xpath, C.bool(writable), xparams)
 	status := convert_status(res.status)
@@ -1176,9 +1185,9 @@ func dbm_clear(dbm uintptr) *Status {
 	return status
 }
 
-func dbm_rebuild(dbm uintptr, params string) *Status {
+func dbm_rebuild(dbm uintptr, params map[string]string) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	xparams := C.CString(params)
+	xparams := C.CString(join_params(params))
 	defer C.free(unsafe.Pointer(xparams))
 	res := C.do_dbm_rebuild(xdbm, xparams)
 	status := convert_status(res)
@@ -1192,9 +1201,9 @@ func dbm_should_be_rebuilt(dbm uintptr) (bool, *Status) {
 	return bool(res.value), status
 }
 
-func dbm_synchronize(dbm uintptr, hard bool, params string) *Status {
+func dbm_synchronize(dbm uintptr, hard bool, params map[string]string) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
-	xparams := C.CString(params)
+	xparams := C.CString(join_params(params))
 	defer C.free(unsafe.Pointer(xparams))
 	res := C.do_dbm_synchronize(xdbm, C.bool(hard), xparams)
 	status := convert_status(res)
@@ -1656,17 +1665,17 @@ func async_dbm_clear(async uintptr) *Future {
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 
-func async_dbm_rebuild(async uintptr, params string) *Future {
+func async_dbm_rebuild(async uintptr, params map[string]string) *Future {
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
-	xparams := C.CString(params)
+	xparams := C.CString(join_params(params))
 	defer C.free(unsafe.Pointer(xparams))
 	xfuture := C.tkrzw_async_dbm_rebuild(xasync, xparams)
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 
-func async_dbm_synchronize(async uintptr, hard bool, params string) *Future {
+func async_dbm_synchronize(async uintptr, hard bool, params map[string]string) *Future {
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
-	xparams := C.CString(params)
+	xparams := C.CString(join_params(params))
 	defer C.free(unsafe.Pointer(xparams))
 	xfuture := C.tkrzw_async_dbm_synchronize(xasync, C.bool(hard), xparams)
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
@@ -1712,10 +1721,10 @@ func async_dbm_search(async uintptr, mode string, pattern string, capacity int) 
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 
-func file_open(path string, writable bool, params string) (uintptr, *Status) {
+func file_open(path string, writable bool, params map[string]string) (uintptr, *Status) {
 	xpath := C.CString(path)
 	defer C.free(unsafe.Pointer(xpath))
-	xparams := C.CString(params)
+	xparams := C.CString(join_params(params))
 	defer C.free(unsafe.Pointer(xparams))
 	res := C.do_file_open(xpath, C.bool(writable), xparams)
 	status := convert_status(res.status)

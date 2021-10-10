@@ -42,7 +42,7 @@ func main() {
 	fmt.Println()
 	startMemUsage := tkrzw.GetMemoryUsage()
 	dbm := tkrzw.NewDBM()
-	dbm.Open(path, true, openParams).OrDie()
+	dbm.Open(path, true, tkrzw.ParseParams(openParams)).OrDie()
 	fmt.Println("Setting:")
 	startTime := time.Now()
 	setter := func(thid int, done chan<- bool) {
@@ -75,7 +75,7 @@ func main() {
 	for _, done := range dones {
 		<-done
 	}
-	dbm.Synchronize(false, "").OrDie()
+	dbm.Synchronize(false, tkrzw.ParseParams("")).OrDie()
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime).Seconds()
 	memUsage := tkrzw.GetMemoryUsage() - startMemUsage
