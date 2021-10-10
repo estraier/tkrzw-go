@@ -485,6 +485,7 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, "10", inspRecords["num_records"])
 	CheckEq(t, "HashDBM", inspRecords["class"])
 	iter := dbm.MakeIterator()
+	CheckTrue(t, len(iter.String()) > 0)
 	CheckEq(t, StatusSuccess, iter.First())
 	CheckTrue(t, len(iter.String()) > 1)
 	count = 0

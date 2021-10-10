@@ -39,13 +39,13 @@ func (self *Iterator) Destruct() {
 // @return The string representing the iterator.
 func (self *Iterator) String() string {
 	if self.iter == 0 {
-		return fmt.Sprintf("#<tkrzw.Iter:%p:destructed>", &self)
+		return fmt.Sprintf("#<tkrzw.Iterator:%p:destructed>", &self)
 	}
 	key, status := dbm_iter_get_key_esc(self.iter)
 	if status.code == StatusSuccess {
-		return fmt.Sprintf("#<tkrzw.Iter:%s>", key)
+		return fmt.Sprintf("#<tkrzw.Iterator:%s>", key)
 	}
-	return fmt.Sprintf("#<tkrzw.Iter:%p:unlocated>", &self)
+	return fmt.Sprintf("#<tkrzw.Iterator:%p:unlocated>", &self)
 }
 
 // Initializes the iterator to indicate the first record.
