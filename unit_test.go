@@ -645,6 +645,7 @@ func TestDBMThread(t *testing.T) {
 				iter.Jump(key)
 				_, _, status := iter.Get()
 				CheckTrue(t, status.Equals(StatusSuccess) || status.Equals(StatusNotFoundError))
+				iter.Destruct()
 			}
 		}
 		done <- true
