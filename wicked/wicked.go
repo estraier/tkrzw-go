@@ -43,7 +43,7 @@ func main() {
 	startMemUsage := tkrzw.GetMemoryUsage()
 	dbm := tkrzw.NewDBM()
 	dbm.Open(path, true, tkrzw.ParseParams(openParams)).OrDie()
-	fmt.Println("Setting:")
+	fmt.Println("Doing:")
 	startTime := time.Now()
 	task := func(thid int, done chan<- bool) {
 		random := rand.New(rand.NewSource(int64(thid)))
@@ -128,7 +128,7 @@ func main() {
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime).Seconds()
 	memUsage := tkrzw.GetMemoryUsage() - startMemUsage
-	fmt.Printf("Setting done: num_records=%d file_size=%d time=%.3f qps=%.0f mem=%d\n",
+	fmt.Printf("Done: num_records=%d file_size=%d time=%.3f qps=%.0f mem=%d\n",
 		dbm.CountSimple(), dbm.GetFileSizeSimple(),
 		elapsed, float64(numIterations*numThreads)/elapsed, memUsage)
 	fmt.Println()
