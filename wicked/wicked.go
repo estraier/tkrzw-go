@@ -86,6 +86,7 @@ func main() {
 						iter.Next()
 					}
 				}
+				iter.Destruct()
 			} else if random.Intn(3) == 0 {
 				_, status := dbm.Get(key)
 				if !status.Equals(tkrzw.StatusNotFoundError) {
