@@ -64,7 +64,7 @@ func (self *DBM) String() string {
 //
 // @param path A path of the file.
 // @param writable If true, the file is writable.  If false, it is read-only.
-// @param params Optional parameters.  If it is null, it is ignored.
+// @param params Optional parameters.  If it is nil, it is ignored.
 // @return The result status.
 //
 // The extension of the path indicates the type of the database.
@@ -598,7 +598,7 @@ func (self *DBM) Clear() *Status {
 
 // Rebuilds the entire database.
 //
-// @param params Optional parameters.
+// @param params Optional parameters.  If it is nil, it is ignored.
 // @return The result status.
 //
 // The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
@@ -641,7 +641,7 @@ func (self *DBM) ShouldBeRebuiltSimple() bool {
 // Synchronizes the content of the database to the file system.
 //
 // @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
-// @param params Optional parameters.
+// @param params Optional parameters.  If it is nil, it is ignored.
 // @return The result status.
 //
 // Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
@@ -856,7 +856,7 @@ func (self *DBM) EachStr() <-chan KeyValueStrPair {
 //
 // @param old_file_path The path of the broken database.
 // @param new_file_path The path of the new database to be created.
-// @param class_name The name of the database class.  If it is null or empty, the class is guessed from the file extension.
+// @param class_name The name of the database class.  If it is nil or empty, the class is guessed from the file extension.
 // @param end_offset The exclusive end offset of records to read.  Negative means unlimited.  0 means the size when the database is synched or closed properly.  Using a positive value is not meaningful if the number of shards is more than one.
 // @return The result status.
 func RestoreDatabase(

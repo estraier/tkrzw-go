@@ -716,6 +716,9 @@ func convert_status(res C.RES_STATUS) *Status {
 }
 
 func join_params(params map[string]string) string {
+	if params == nil {
+		return ""
+	}
 	fields := make([]string, 0, 4)
 	for name, value := range params {
 		fields = append(fields, name+"="+value)
