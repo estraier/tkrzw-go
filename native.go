@@ -307,6 +307,17 @@ RES_STATUS do_dbm_compare_exchange_multi(
   return res;
 }
 
+RES_STATUS do_dbm_rekey(
+    TkrzwDBM* dbm, const char* old_key_ptr, int32_t old_key_size,
+    const char* new_key_ptr, int32_t new_key_size, bool overwrite, bool copying) {
+  RES_STATUS res;
+  tkrzw_dbm_rekey(dbm, old_key_ptr, old_key_size, new_key_ptr, new_key_size, overwrite, copying);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_INT do_dbm_count(TkrzwDBM* dbm) {
   RES_INT res;
   res.num = tkrzw_dbm_count(dbm);
@@ -564,6 +575,28 @@ RES_STATUS do_dbm_iter_remove(TkrzwDBMIter* iter) {
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_REC do_dbm_iter_step(TkrzwDBMIter* iter) {
+  RES_REC res;
+  res.key_ptr = NULL;
+  res.value_ptr = NULL;
+  tkrzw_dbm_iter_step(iter, &res.key_ptr, &res.key_size, &res.value_ptr, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_REC do_dbm_iter_pop_first(TkrzwDBMIter* iter) {
+  RES_REC res;
+  res.key_ptr = NULL;
+  res.value_ptr = NULL;
+  tkrzw_dbm_iter_pop_first(iter, &res.key_ptr, &res.key_size, &res.value_ptr, &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
   return res;
 }
 
@@ -1148,6 +1181,19 @@ func dbm_compare_exchange_multi(
 	return status
 }
 
+func dbm_rekey(dbm uintptr, old_key []byte, new_key []byte,
+	overwrite bool, copying bool) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xold_key_ptr := (*C.char)(C.CBytes(old_key))
+	defer C.free(unsafe.Pointer(xold_key_ptr))
+	xnew_key_ptr := (*C.char)(C.CBytes(new_key))
+	defer C.free(unsafe.Pointer(xnew_key_ptr))
+	res := C.do_dbm_rekey(xdbm, xold_key_ptr, C.int32_t(len(old_key)),
+		xnew_key_ptr, C.int32_t(len(new_key)), C.bool(overwrite), C.bool(copying))
+	status := convert_status(res)
+	return status
+}
+
 func dbm_count(dbm uintptr) (int64, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_count(xdbm)
@@ -1451,6 +1497,40 @@ func dbm_iter_remove(iter uintptr) *Status {
 	res := C.do_dbm_iter_remove(xiter)
 	status := convert_status(res)
 	return status
+}
+
+func dbm_iter_step(iter uintptr) ([]byte, []byte, *Status) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_step(xiter)
+	var key []byte = nil
+	if res.key_ptr != nil {
+		defer C.free(unsafe.Pointer(res.key_ptr))
+		key = C.GoBytes(unsafe.Pointer(res.key_ptr), res.key_size)
+	}
+	var value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return key, value, status
+}
+
+func dbm_iter_pop_first(iter uintptr) ([]byte, []byte, *Status) {
+	xiter := (*C.TkrzwDBMIter)(unsafe.Pointer(iter))
+	res := C.do_dbm_iter_pop_first(xiter)
+	var key []byte = nil
+	if res.key_ptr != nil {
+		defer C.free(unsafe.Pointer(res.key_ptr))
+		key = C.GoBytes(unsafe.Pointer(res.key_ptr), res.key_size)
+	}
+	var value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return key, value, status
 }
 
 func async_dbm_new(dbm uintptr, num_worker_threads int) uintptr {

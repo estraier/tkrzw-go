@@ -529,12 +529,21 @@ func TestDBMBasic(t *testing.T) {
 	strValue, status = iter.GetValueStr()
 	CheckEq(t, StatusSuccess, iter.Remove())
 	CheckEq(t, 9, dbm.CountSimple())
+	CheckEq(t, StatusSuccess, dbm.Set("key1", "value1", true))
+	CheckEq(t, StatusSuccess, dbm.Rekey("key1", "key2", false, false))
+	CheckEq(t, "*", dbm.GetSimple("key1", "*"))
+	CheckEq(t, "value1", dbm.GetSimple("key2", "*"))
+	CheckEq(t, StatusSuccess, dbm.Rekey("key2", "key1", false, true))
+	CheckEq(t, "value1", dbm.GetSimple("key1", "*"))
+	CheckEq(t, "value1", dbm.GetSimple("key2", "*"))
+	CheckEq(t, StatusDuplicationError, dbm.Rekey("key1", "key2", false, false))
+	CheckEq(t, StatusNotFoundError, dbm.Rekey("key0", "key2", false, false))
 	iter.Destruct()
 	CheckEq(t, StatusSuccess, dbm.Close())
 	os.Remove(copyPath)
 	CheckEq(t, StatusSuccess, RestoreDatabase(filePath, copyPath, "", -1))
 	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, false, nil))
-	CheckEq(t, 9, copyDBM.CountSimple())
+	CheckEq(t, 11, copyDBM.CountSimple())
 	CheckEq(t, StatusSuccess, copyDBM.Close())
 }
 
@@ -582,7 +591,6 @@ func TestDBMIterator(t *testing.T) {
 	key, status = iter.GetKeyStr()
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "00000049", key)
-	iter.Destruct()
 	count := 0
 	for record := range dbm.Each() {
 		CheckEq(t, dbm.GetSimple(record.Key, ""), record.Value)
@@ -595,6 +603,51 @@ func TestDBMIterator(t *testing.T) {
 		count++
 	}
 	CheckEq(t, dbm.CountSimple(), count)
+	step_count := 0
+	CheckEq(t, StatusSuccess, iter.First())
+	for {
+		if step_count%2 == 0 {
+			key, value, status := iter.Step()
+			if !status.IsOK() {
+				CheckEq(t, StatusNotFoundError, status)
+				break
+			}
+			CheckEq(t, ToInt(key)*ToInt(key), ToInt(value))
+		} else {
+			strKey, strValue, status := iter.StepStr()
+			if !status.IsOK() {
+				CheckEq(t, StatusNotFoundError, status)
+				break
+			}
+			CheckEq(t, ToInt(strKey)*ToInt(strKey), ToInt(strValue))
+		}
+		CheckEq(t, StatusSuccess, status)
+		step_count++
+	}
+	CheckEq(t, count, step_count)
+	pop_count := 0
+	for {
+		if pop_count%2 == 0 {
+			key, value, status := iter.PopFirst()
+			if !status.IsOK() {
+				CheckEq(t, StatusNotFoundError, status)
+				break
+			}
+			CheckEq(t, ToInt(key)*ToInt(key), ToInt(value))
+		} else {
+			strKey, strValue, status := iter.PopFirstStr()
+			if !status.IsOK() {
+				CheckEq(t, StatusNotFoundError, status)
+				break
+			}
+			CheckEq(t, ToInt(strKey)*ToInt(strKey), ToInt(strValue))
+		}
+		CheckEq(t, StatusSuccess, status)
+		pop_count++
+	}
+	CheckEq(t, step_count, pop_count)
+	CheckEq(t, 0, dbm.CountSimple())
+	iter.Destruct()
 	CheckEq(t, StatusSuccess, dbm.Close())
 }
 

@@ -490,6 +490,23 @@ func (self *DBM) CompareExchangeMultiStr(
 	return dbm_compare_exchange_multi(self.dbm, rawExpected, rawDesired)
 }
 
+// Changes the key of a record.
+//
+// @param old_key The old key of the record.
+// @param new_key The new key of the record.
+// @param overwrite Whether to overwrite the existing record of the new key.
+// @param copying Whether to retain the record of the old key.
+// @return The result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is returned.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is returned.
+//
+// This method is done atomically by ProcessMulti.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+func (self *DBM) Rekey(oldKey interface{}, newKey interface{},
+	overwrite bool, copying bool) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_rekey(self.dbm, ToByteArray(oldKey), ToByteArray(newKey), overwrite, copying)
+}
+
 // Gets the number of records.
 //
 // @return The number of records and the result status.
