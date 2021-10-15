@@ -268,6 +268,34 @@ func (self *AsyncDBM) CompareExchangeMultiStr(
 	return async_dbm_compare_exchange_multi(self.async, rawExpected, rawDesired)
 }
 
+// Changes the key of a record.
+//
+// @param old_key The old key of the record.
+// @param new_key The new key of the record.
+// @param overwrite Whether to overwrite the existing record of the new key.
+// @param copying Whether to retain the record of the old key.
+// @return The future for the result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is set.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is set.  The result should be gotten by the Get method of the future.
+//
+// This method is done atomically by ProcessMulti.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+func (self *AsyncDBM) Rekey(old_key interface{}, new_key interface{},
+	overwrite bool, copying bool) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_rekey(self.async, ToByteArray(old_key), ToByteArray(new_key),
+		overwrite, copying)
+}
+
+// Gets the first record and removes it.
+//
+// @return A tuple of the result status, the key and the value of the first record.  The result should be gotten by the GetPair or GetPairStr method of the future.
+func (self *AsyncDBM) PopFirst() *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_pop_first(self.async)
+}
+
 // Removes all records.
 //
 // @return The future for the result status.  The result should be gotten by the Get method of the future.

@@ -59,6 +59,11 @@ typedef struct {
 } RES_STR;
 
 typedef struct {
+  TkrzwKeyValuePair* str_pair;
+  RES_STATUS status;
+} RES_STRPAIR;
+
+typedef struct {
   bool value;
   RES_STATUS status;
 } RES_BOOL;
@@ -118,6 +123,16 @@ RES_BYTES do_future_get_bytes(TkrzwFuture* future) {
 RES_STR do_future_get_str(TkrzwFuture* future) {
   RES_STR res;
   res.str = tkrzw_future_get_str(future, NULL);
+  tkrzw_future_free(future);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STRPAIR do_future_get_str_pair(TkrzwFuture* future) {
+  RES_STRPAIR res;
+  res.str_pair = tkrzw_future_get_str_pair(future);
   tkrzw_future_free(future);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -792,6 +807,26 @@ func future_get_str(future uintptr) (string, *Status) {
 	value := C.GoString(res.str)
 	status := convert_status(res.status)
 	return value, status
+}
+
+func future_get_pair(future uintptr) ([]byte, []byte, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_str_pair(xfuture)
+	defer C.free(unsafe.Pointer(res.str_pair))
+	key := C.GoBytes(unsafe.Pointer(res.str_pair.key_ptr), res.str_pair.key_size)
+	value := C.GoBytes(unsafe.Pointer(res.str_pair.value_ptr), res.str_pair.value_size)
+	status := convert_status(res.status)
+	return key, value, status
+}
+
+func future_get_pair_str(future uintptr) (string, string, *Status) {
+	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
+	res := C.do_future_get_str_pair(xfuture)
+	defer C.free(unsafe.Pointer(res.str_pair))
+	key := C.GoString(res.str_pair.key_ptr)
+	value := C.GoString(res.str_pair.value_ptr)
+	status := convert_status(res.status)
+	return key, value, status
 }
 
 func future_get_array(future uintptr) ([][]byte, *Status) {
@@ -1739,6 +1774,24 @@ func async_dbm_compare_exchange_multi(
 	}
 	xfuture := C.tkrzw_async_dbm_compare_exchange_multi(
 		xasync, xexpected, C.int32_t(len(expected)), xdesired, C.int32_t(len(desired)))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_rekey(async uintptr, old_key []byte, new_key []byte,
+	overwrite bool, copying bool) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xold_key_ptr := (*C.char)(C.CBytes(old_key))
+	defer C.free(unsafe.Pointer(xold_key_ptr))
+	xnew_key_ptr := (*C.char)(C.CBytes(new_key))
+	defer C.free(unsafe.Pointer(xnew_key_ptr))
+	xfuture := C.tkrzw_async_dbm_rekey(xasync, xold_key_ptr, C.int32_t(len(old_key)),
+		xnew_key_ptr, C.int32_t(len(new_key)), C.bool(overwrite), C.bool(copying))
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_pop_first(async uintptr) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xfuture := C.tkrzw_async_dbm_pop_first(xasync)
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 

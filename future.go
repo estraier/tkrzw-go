@@ -98,6 +98,34 @@ func (self *Future) GetStr() (string, *Status) {
 	return value, status
 }
 
+// Gets the extra bytes pair and the status of the operation.
+//
+// @return The bytes pair and the result status.
+//
+// The internal resource is released by this method.  "Wait" and "Get" faminly cannot be called after calling this method.
+func (self *Future) GetPair() ([]byte, []byte, *Status) {
+	if self.future == 0 {
+		return nil, nil, NewStatus2(StatusPreconditionError, "destructed object")
+	}
+	key, value, status := future_get_pair(self.future)
+	self.future = 0
+	return key, value, status
+}
+
+// Gets the extra string pair and the status of the operation.
+//
+// @return The string pair and the result status.
+//
+// The internal resource is released by this method.  "Wait" and "Get" faminly cannot be called after calling this method.
+func (self *Future) GetPairStr() (string, string, *Status) {
+	if self.future == 0 {
+		return "", "", NewStatus2(StatusPreconditionError, "destructed object")
+	}
+	key, value, status := future_get_pair_str(self.future)
+	self.future = 0
+	return key, value, status
+}
+
 // Gets the extra array of byte arrays and the status of the operation.
 //
 // @return An array of byte arrays and the result status.
