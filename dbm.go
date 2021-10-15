@@ -507,6 +507,30 @@ func (self *DBM) Rekey(oldKey interface{}, newKey interface{},
 	return dbm_rekey(self.dbm, ToByteArray(oldKey), ToByteArray(newKey), overwrite, copying)
 }
 
+// Gets the first record and removes it.
+//
+// @return The key and the value of the first record, and the result status.
+func (self *DBM) PopFirst() ([]byte, []byte, *Status) {
+	if self.dbm == 0 {
+		return nil, nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_pop_first(self.dbm)
+}
+
+// Gets the first record as strings and removes it.
+//
+// @return The key and the value of the first record, and the result status.
+func (self *DBM) PopFirstStr() (string, string, *Status) {
+	if self.dbm == 0 {
+		return "", "", NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	key, value, status := dbm_pop_first(self.dbm)
+	if status.code == StatusSuccess {
+		return string(key), string(value), status
+	}
+	return "", "", status
+}
+
 // Gets the number of records.
 //
 // @return The number of records and the result status.

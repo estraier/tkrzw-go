@@ -254,28 +254,4 @@ func (self *Iterator) StepStr() (string, string, *Status) {
 	return "", "", status
 }
 
-// Jumps to the first record, removes it, and get the data.
-//
-// @return The key and the value of the first record, and the result status.
-func (self *Iterator) PopFirst() ([]byte, []byte, *Status) {
-	if self.iter == 0 {
-		return nil, nil, NewStatus2(StatusPreconditionError, "destructed Iterator")
-	}
-	return dbm_iter_pop_first(self.iter)
-}
-
-// Jumps to the first record, removes it, and get the data, as strings.
-//
-// @return The key and the value of the first record, and the result status.
-func (self *Iterator) PopFirstStr() (string, string, *Status) {
-	if self.iter == 0 {
-		return "", "", NewStatus2(StatusPreconditionError, "destructed Iterator")
-	}
-	key, value, status := dbm_iter_pop_first(self.iter)
-	if status.code == StatusSuccess {
-		return string(key), string(value), status
-	}
-	return "", "", status
-}
-
 // END OF FILE

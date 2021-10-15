@@ -628,14 +628,14 @@ func TestDBMIterator(t *testing.T) {
 	pop_count := 0
 	for {
 		if pop_count%2 == 0 {
-			key, value, status := iter.PopFirst()
+			key, value, status := dbm.PopFirst()
 			if !status.IsOK() {
 				CheckEq(t, StatusNotFoundError, status)
 				break
 			}
 			CheckEq(t, ToInt(key)*ToInt(key), ToInt(value))
 		} else {
-			strKey, strValue, status := iter.PopFirstStr()
+			strKey, strValue, status := dbm.PopFirstStr()
 			if !status.IsOK() {
 				CheckEq(t, StatusNotFoundError, status)
 				break
