@@ -531,6 +531,20 @@ func (self *DBM) PopFirstStr() (string, string, *Status) {
 	return "", "", status
 }
 
+// Adds a record with a key of the current timestamp.
+//
+// @param value The value of the record.
+// @param wtime The current wall time used to generate the key.  If it is None, the system clock is used.
+// @return The result status.
+//
+// The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
+func (self *DBM) PushLast(value interface{}, wtime float64) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_push_last(self.dbm, ToByteArray(value), wtime)
+}
+
 // Gets the number of records.
 //
 // @return The number of records and the result status.

@@ -296,6 +296,20 @@ func (self *AsyncDBM) PopFirst() *Future {
 	return async_dbm_pop_first(self.async)
 }
 
+// Adds a record with a key of the current timestamp.
+//
+// @param value The value of the record.
+// @param wtime The current wall time used to generate the key.  If it is None, the system clock is used.
+// @return The future for the result status.
+//
+// The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
+func (self *AsyncDBM) PushLast(value interface{}, wtime float64) *Future {
+	if self.async == 0 {
+		return &Future{0}
+	}
+	return async_dbm_push_last(self.async, ToByteArray(value), wtime)
+}
+
 // Removes all records.
 //
 // @return The future for the result status.  The result should be gotten by the Get method of the future.

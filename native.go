@@ -120,16 +120,6 @@ RES_BYTES do_future_get_bytes(TkrzwFuture* future) {
   return res;
 }
 
-RES_STR do_future_get_str(TkrzwFuture* future) {
-  RES_STR res;
-  res.str = tkrzw_future_get_str(future, NULL);
-  tkrzw_future_free(future);
-  TkrzwStatus status = tkrzw_get_last_status();
-  res.status.code = status.code;
-  res.status.message = copy_status_message(status.message);
-  return res;
-}
-
 RES_STRPAIR do_future_get_str_pair(TkrzwFuture* future) {
   RES_STRPAIR res;
   res.str_pair = tkrzw_future_get_str_pair(future);
@@ -191,15 +181,6 @@ RES_STATUS do_dbm_close(TkrzwDBM* dbm) {
 RES_BYTES do_dbm_get(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
   RES_BYTES res;
   res.value_ptr = tkrzw_dbm_get(dbm, key_ptr, key_size, &res.value_size);
-  TkrzwStatus status = tkrzw_get_last_status();
-  res.status.code = status.code;
-  res.status.message = copy_status_message(status.message);
-  return res;
-}
-
-RES_STR do_dbm_get_str(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size) {
-  RES_STR res;
-  res.str = tkrzw_dbm_get(dbm, key_ptr, key_size, NULL);
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
@@ -341,6 +322,16 @@ RES_REC do_dbm_pop_first(TkrzwDBM* dbm) {
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_push_last(
+    TkrzwDBM* dbm, const char* value_ptr, int32_t value_size, double wtime) {
+  RES_STATUS res;
+  tkrzw_dbm_push_last(dbm, value_ptr, value_size, wtime);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
   return res;
 }
 
@@ -779,7 +770,7 @@ func future_free(future uintptr) {
 	C.tkrzw_future_free(xfuture)
 }
 
-func future_wait(future uintptr, timeout float32) bool {
+func future_wait(future uintptr, timeout float64) bool {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
 	return bool(C.tkrzw_future_wait(xfuture, C.double(timeout)))
 }
@@ -802,9 +793,9 @@ func future_get_bytes(future uintptr) ([]byte, *Status) {
 
 func future_get_str(future uintptr) (string, *Status) {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
-	res := C.do_future_get_str(xfuture)
-	defer C.free(unsafe.Pointer(res.str))
-	value := C.GoString(res.str)
+	res := C.do_future_get_bytes(xfuture)
+	defer C.free(unsafe.Pointer(res.value_ptr))
+	value := C.GoStringN(res.value_ptr, res.value_size)
 	status := convert_status(res.status)
 	return value, status
 }
@@ -823,8 +814,8 @@ func future_get_pair_str(future uintptr) (string, string, *Status) {
 	xfuture := (*C.TkrzwFuture)(unsafe.Pointer(future))
 	res := C.do_future_get_str_pair(xfuture)
 	defer C.free(unsafe.Pointer(res.str_pair))
-	key := C.GoString(res.str_pair.key_ptr)
-	value := C.GoString(res.str_pair.value_ptr)
+	key := C.GoStringN(res.str_pair.key_ptr, res.str_pair.key_size)
+	value := C.GoStringN(res.str_pair.value_ptr, res.str_pair.value_size)
 	status := convert_status(res.status)
 	return key, value, status
 }
@@ -937,11 +928,11 @@ func dbm_get_str(dbm uintptr, key []byte) (string, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
-	res := C.do_dbm_get_str(xdbm, xkey_ptr, C.int32_t(len(key)))
+	res := C.do_dbm_get(xdbm, xkey_ptr, C.int32_t(len(key)))
 	var value string
-	if res.str != nil {
-		defer C.free(unsafe.Pointer(res.str))
-		value = C.GoString(res.str)
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoStringN(res.value_ptr, res.value_size)
 	}
 	status := convert_status(res.status)
 	return value, status
@@ -1244,6 +1235,15 @@ func dbm_pop_first(dbm uintptr) ([]byte, []byte, *Status) {
 	}
 	status := convert_status(res.status)
 	return key, value, status
+}
+
+func dbm_push_last(dbm uintptr, value []byte, wtime float64) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	res := C.do_dbm_push_last(xdbm, xvalue_ptr, C.int32_t(len(value)), C.double(wtime))
+	status := convert_status(res)
+	return status
 }
 
 func dbm_count(dbm uintptr) (int64, *Status) {
@@ -1792,6 +1792,15 @@ func async_dbm_rekey(async uintptr, old_key []byte, new_key []byte,
 func async_dbm_pop_first(async uintptr) *Future {
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
 	xfuture := C.tkrzw_async_dbm_pop_first(xasync)
+	return &Future{uintptr(unsafe.Pointer(xfuture))}
+}
+
+func async_dbm_push_last(async uintptr, value []byte, wtime float64) *Future {
+	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	xfuture := C.tkrzw_async_dbm_push_last(
+		xasync, xvalue_ptr, C.int32_t(len(value)), C.double(wtime))
 	return &Future{uintptr(unsafe.Pointer(xfuture))}
 }
 

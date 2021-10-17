@@ -49,7 +49,7 @@ func (self *Future) String() string {
 //
 // @param timeout The waiting time in seconds.  If it is negative, no timeout is set.
 // @return True if the operation has done.  False if timeout occurs.
-func (self *Future) Wait(timeout float32) bool {
+func (self *Future) Wait(timeout float64) bool {
 	if self.future == 0 {
 		return false
 	}
