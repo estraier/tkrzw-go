@@ -65,7 +65,8 @@ distclean : clean apidocclean
 
 apidoc :
 	rm -rf api-doc
-	godoc -http "localhost:8080" -play & sleep 1
+	PATH=$$PATH:$$HOME/go/bin:$$HOME/.local/bin \
+	  godoc -http "localhost:8080" -play -goroot /usr/share/go & sleep 2
 	mkdir api-doc
 	curl -s "http://localhost:8080/lib/godoc/style.css" > api-doc/style.css
 	echo '#topbar { display: none; }' >> api-doc/style.css
