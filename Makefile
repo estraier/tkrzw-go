@@ -43,7 +43,9 @@ fmt :
 	$(RUNENV) $(GOCMD) fmt
 
 clean :
-	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni
+	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni go.sum
+	[ ! -f perf/Makefile ] || cd perf && $(MAKE) clean
+	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE) clean
 
 install :
 	@printf '\n'
