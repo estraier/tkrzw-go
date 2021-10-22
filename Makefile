@@ -9,7 +9,10 @@ GOCMD := go
 RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
 
 build :
+	$(RUNENV) $(GOCMD) get
 	$(RUNENV) $(GOCMD) build
+	[ ! -f perf/Makefile ] || cd perf && $(MAKE)
+	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE)
 	@printf '\n'
 	@printf '#================================================================\n'
 	@printf '# Build is OK.\n'
@@ -22,6 +25,7 @@ check : test runperf runwicked
 	@printf '#================================================================\n'
 
 test :
+	$(RUNENV) $(GOCMD) get
 	$(RUNENV) $(GOCMD) test -v
 
 runperf :
@@ -31,9 +35,11 @@ runwicked :
 	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE) run
 
 vet :
+	$(RUNENV) $(GOCMD) get
 	$(RUNENV) $(GOCMD) vet
 
 fmt :
+	$(RUNENV) $(GOCMD) get
 	$(RUNENV) $(GOCMD) fmt
 
 clean :

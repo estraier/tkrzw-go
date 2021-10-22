@@ -1,4 +1,4 @@
-module example1
+module github.com/estraier/tkrzw-go/wicked
 
 go 1.14
 

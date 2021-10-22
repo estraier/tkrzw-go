@@ -1,4 +1,4 @@
-module example1
+module github.com/estraier/tkrzw-go/perf
 
 go 1.14
 
