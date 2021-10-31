@@ -229,8 +229,8 @@ func IsAnyBytes(data []byte) bool {
 // @param data The data to check.
 // @return True if the data is the string, or false if not.
 func IsAnyString(data string) bool {
-		return ((*reflect.StringHeader)(unsafe.Pointer(&data)).Data ==
-			(*reflect.StringHeader)(unsafe.Pointer(&AnyString)).Data)
+	return ((*reflect.StringHeader)(unsafe.Pointer(&data)).Data ==
+		(*reflect.StringHeader)(unsafe.Pointer(&AnyString)).Data)
 }
 
 // Checks whether the given data is a nil-equivalent value.

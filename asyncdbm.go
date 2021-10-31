@@ -204,16 +204,16 @@ func (self *AsyncDBM) CompareExchange(
 	}
 	var rawExpected []byte
 	if !IsNilData(expected) {
-		if (IsAnyData(expected)) {
-			rawExpected = AnyBytes;
+		if IsAnyData(expected) {
+			rawExpected = AnyBytes
 		} else {
 			rawExpected = ToByteArray(expected)
 		}
 	}
 	var rawDesired []byte
 	if !IsNilData(desired) {
-		if (IsAnyData(desired)) {
-			rawDesired = AnyBytes;
+		if IsAnyData(desired) {
+			rawDesired = AnyBytes
 		} else {
 			rawDesired = ToByteArray(desired)
 		}

@@ -1136,8 +1136,8 @@ func dbm_compare_exchange(dbm uintptr, key []byte, expected []byte, desired []by
 	var xexpected_ptr *C.char
 	var xexpected_size C.int32_t
 	if expected != nil {
-    if IsAnyBytes(expected) {
-			xexpected_ptr = C.TKRZW_ANY_DATA;
+		if IsAnyBytes(expected) {
+			xexpected_ptr = C.TKRZW_ANY_DATA
 		} else {
 			xexpected_ptr = (*C.char)(C.CBytes(expected))
 			defer C.free(unsafe.Pointer(xexpected_ptr))
@@ -1148,7 +1148,7 @@ func dbm_compare_exchange(dbm uintptr, key []byte, expected []byte, desired []by
 	var xdesired_size C.int32_t
 	if desired != nil {
 		if IsAnyBytes(desired) {
-			xdesired_ptr = C.TKRZW_ANY_DATA;
+			xdesired_ptr = C.TKRZW_ANY_DATA
 		} else {
 			xdesired_ptr = (*C.char)(C.CBytes(desired))
 			defer C.free(unsafe.Pointer(xdesired_ptr))
@@ -1712,7 +1712,7 @@ func async_dbm_compare_exchange(
 	var xexpected_size C.int32_t
 	if expected != nil {
 		if IsAnyBytes(expected) {
-			xexpected_ptr = C.TKRZW_ANY_DATA;
+			xexpected_ptr = C.TKRZW_ANY_DATA
 		} else {
 			xexpected_ptr = (*C.char)(C.CBytes(expected))
 			defer C.free(unsafe.Pointer(xexpected_ptr))
@@ -1723,7 +1723,7 @@ func async_dbm_compare_exchange(
 	var xdesired_size C.int32_t
 	if desired != nil {
 		if IsAnyBytes(desired) {
-			xdesired_ptr = C.TKRZW_ANY_DATA;
+			xdesired_ptr = C.TKRZW_ANY_DATA
 		} else {
 			xdesired_ptr = (*C.char)(C.CBytes(desired))
 			defer C.free(unsafe.Pointer(xdesired_ptr))
