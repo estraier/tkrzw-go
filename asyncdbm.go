@@ -194,8 +194,8 @@ func (self *AsyncDBM) AppendMultiStr(records map[string]string, delim interface{
 // Compares the value of a record and exchanges if the condition meets.
 //
 // @param key The key of the record.
-// @param expected The expected value.  If it is nil, no existing record is expected.
-// @param desired The desired value.  If it is nil, the record is to be removed.
+// @param expected The expected value.  If it is nil or NilString, no existing record is expected.  If it is AnyBytes or AnyString, an existing record with any value is expacted.
+// @param desired The desired value.  If it is nil or NilString, the record is to be removed.  If it is AnyBytes or AnyString, no update is done.
 // @return The future for the result status.  If the condition doesn't meet, StatusInfeasibleError is set.  The result should be gotten by the Get method of the future.
 func (self *AsyncDBM) CompareExchange(
 	key interface{}, expected interface{}, desired interface{}) *Future {
@@ -203,12 +203,20 @@ func (self *AsyncDBM) CompareExchange(
 		return &Future{0}
 	}
 	var rawExpected []byte
-	if expected != nil {
-		rawExpected = ToByteArray(expected)
+	if !IsNilData(expected) {
+		if (IsAnyData(expected)) {
+			rawExpected = AnyBytes;
+		} else {
+			rawExpected = ToByteArray(expected)
+		}
 	}
 	var rawDesired []byte
-	if desired != nil {
-		rawDesired = ToByteArray(desired)
+	if !IsNilData(desired) {
+		if (IsAnyData(desired)) {
+			rawDesired = AnyBytes;
+		} else {
+			rawDesired = ToByteArray(desired)
+		}
 	}
 	return async_dbm_compare_exchange(self.async, ToByteArray(key), rawExpected, rawDesired)
 }
@@ -228,7 +236,7 @@ func (self *AsyncDBM) Increment(key interface{}, inc interface{}, init interface
 
 // Compares the values of records and exchanges if the condition meets.
 //
-// @param expected A sequence of pairs of the record keys and their expected values.  If the value is nil, no existing record is expected.
+// @param expected A sequence of pairs of the record keys and their expected values.  If the value is nil, no existing record is expected.  If the value is AnyBytes, an existing record with any value is expacted.
 // @param desired A sequence of pairs of the record keys and their desired values.  If the value is nil, the record is to be removed.
 // @return The future for the result status.  If the condition doesn't meet, StatusInfeasibleError is set.  The result should be gotten by the Get method of the future.
 func (self *AsyncDBM) CompareExchangeMulti(
@@ -241,8 +249,8 @@ func (self *AsyncDBM) CompareExchangeMulti(
 
 // Compares the values of records and exchanges if the condition meets, using string data.
 //
-// @param expected A sequence of pairs of the record keys and their expected values.  If the value is an empty string, no existing record is expected.
-// @param desired A sequence of pairs of the record keys and their desired values.  If the value is an empty string, the record is to be removed.
+// @param expected A sequence of pairs of the record keys and their expected values.  If the value is NilString, no existing record is expected.  If the value is AnyString, an existing record with any value is expacted.
+// @param desired A sequence of pairs of the record keys and their desired values.  If the value is NilString, the record is to be removed.
 // @return The future for The result status.  If the condition doesn't meet, StatusInfeasibleError is set.  The result should be gotten by the Get method of the future.
 func (self *AsyncDBM) CompareExchangeMultiStr(
 	expected []KeyValueStrPair, desired []KeyValueStrPair) *Future {
@@ -252,15 +260,19 @@ func (self *AsyncDBM) CompareExchangeMultiStr(
 	rawExpected := make([]KeyValuePair, 0, len(expected))
 	for _, record := range expected {
 		var value []byte
-		if len(record.Value) > 0 {
-			value = []byte(record.Value)
+		if !IsNilString(record.Value) {
+			if IsAnyString(record.Value) {
+				value = AnyBytes
+			} else {
+				value = []byte(record.Value)
+			}
 		}
 		rawExpected = append(rawExpected, KeyValuePair{[]byte(record.Key), value})
 	}
 	rawDesired := make([]KeyValuePair, 0, len(desired))
 	for _, record := range desired {
 		var value []byte
-		if len(record.Value) > 0 {
+		if !IsNilString(record.Value) {
 			value = []byte(record.Value)
 		}
 		rawDesired = append(rawDesired, KeyValuePair{[]byte(record.Key), value})

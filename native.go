@@ -100,6 +100,16 @@ char* copy_status_message(const char* message) {
   return new_message;
 }
 
+void free_str_pairs(TkrzwKeyValuePair* array, int32_t size) {
+  for (int32_t i = 0; i < size; i++) {
+    free((char*)(array[i].key_ptr));
+    if (array[i].value_ptr != TKRZW_ANY_DATA) {
+      free((char*)(array[i].value_ptr));
+    }
+  }
+  free(array);
+}
+
 RES_STATUS do_future_get(TkrzwFuture* future) {
   RES_STATUS res;
   tkrzw_future_get(future);
@@ -1027,7 +1037,7 @@ func dbm_set_multi(dbm uintptr, records map[string][]byte, overwrite bool) *Stat
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
-	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	defer C.free_str_pairs(xrecs, C.int32_t(len(records)))
 	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
 	for key, value := range records {
 		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
@@ -1101,7 +1111,7 @@ func dbm_append_multi(dbm uintptr, records map[string][]byte, delim []byte) *Sta
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
-	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	defer C.free_str_pairs(xrecs, C.int32_t(len(records)))
 	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
 	for key, value := range records {
 		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
@@ -1126,16 +1136,24 @@ func dbm_compare_exchange(dbm uintptr, key []byte, expected []byte, desired []by
 	var xexpected_ptr *C.char
 	var xexpected_size C.int32_t
 	if expected != nil {
-		xexpected_ptr = (*C.char)(C.CBytes(expected))
-		defer C.free(unsafe.Pointer(xexpected_ptr))
-		xexpected_size = C.int32_t(len(expected))
+    if IsAnyBytes(expected) {
+			xexpected_ptr = C.TKRZW_ANY_DATA;
+		} else {
+			xexpected_ptr = (*C.char)(C.CBytes(expected))
+			defer C.free(unsafe.Pointer(xexpected_ptr))
+			xexpected_size = C.int32_t(len(expected))
+		}
 	}
 	var xdesired_ptr *C.char
 	var xdesired_size C.int32_t
 	if desired != nil {
-		xdesired_ptr = (*C.char)(C.CBytes(desired))
-		defer C.free(unsafe.Pointer(xdesired_ptr))
-		xdesired_size = C.int32_t(len(desired))
+		if IsAnyBytes(desired) {
+			xdesired_ptr = C.TKRZW_ANY_DATA;
+		} else {
+			xdesired_ptr = (*C.char)(C.CBytes(desired))
+			defer C.free(unsafe.Pointer(xdesired_ptr))
+			xdesired_size = C.int32_t(len(desired))
+		}
 	}
 	res := C.do_dbm_compare_exchange(
 		xdbm, xkey_ptr, C.int32_t(len(key)),
@@ -1159,19 +1177,17 @@ func dbm_compare_exchange_multi(
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xexpected_size := len(expected) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xexpected := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xexpected_size + 1))))
-	defer C.tkrzw_free_str_map(xexpected, C.int32_t(len(expected)))
+	defer C.free_str_pairs(xexpected, C.int32_t(len(expected)))
 	xexp_ptr := uintptr(unsafe.Pointer(xexpected))
 	for _, pair := range expected {
 		xexp := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xexp_ptr))
-		if pair.Key == nil {
-			xexp.key_ptr = nil
-			xexp.key_size = 0
-		} else {
-			xexp.key_ptr = (*C.char)(C.CBytes(pair.Key))
-			xexp.key_size = C.int32_t(len(pair.Key))
-		}
+		xexp.key_ptr = (*C.char)(C.CBytes(pair.Key))
+		xexp.key_size = C.int32_t(len(pair.Key))
 		if pair.Value == nil {
 			xexp.value_ptr = nil
+			xexp.value_size = 0
+		} else if IsAnyBytes(pair.Value) {
+			xexp.value_ptr = C.TKRZW_ANY_DATA
 			xexp.value_size = 0
 		} else {
 			xexp.value_ptr = (*C.char)(C.CBytes(pair.Value))
@@ -1181,17 +1197,12 @@ func dbm_compare_exchange_multi(
 	}
 	xdesired_size := len(desired) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xdesired := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xdesired_size + 1))))
-	defer C.tkrzw_free_str_map(xdesired, C.int32_t(len(desired)))
+	defer C.free_str_pairs(xdesired, C.int32_t(len(desired)))
 	xdes_ptr := uintptr(unsafe.Pointer(xdesired))
 	for _, pair := range desired {
 		xdes := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xdes_ptr))
-		if pair.Key == nil {
-			xdes.key_ptr = nil
-			xdes.key_size = 0
-		} else {
-			xdes.key_ptr = (*C.char)(C.CBytes(pair.Key))
-			xdes.key_size = C.int32_t(len(pair.Key))
-		}
+		xdes.key_ptr = (*C.char)(C.CBytes(pair.Key))
+		xdes.key_size = C.int32_t(len(pair.Key))
 		if pair.Value == nil {
 			xdes.value_ptr = nil
 			xdes.value_size = 0
@@ -1618,7 +1629,7 @@ func async_dbm_set_multi(async uintptr, records map[string][]byte, overwrite boo
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
 	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
-	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	defer C.free_str_pairs(xrecs, C.int32_t(len(records)))
 	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
 	for key, value := range records {
 		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
@@ -1675,7 +1686,7 @@ func async_dbm_append_multi(async uintptr, records map[string][]byte, delim []by
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
 	xrecs_size := len(records) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xrecs := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xrecs_size + 1))))
-	defer C.tkrzw_free_str_map(xrecs, C.int32_t(len(records)))
+	defer C.free_str_pairs(xrecs, C.int32_t(len(records)))
 	xrec_ptr := uintptr(unsafe.Pointer(xrecs))
 	for key, value := range records {
 		xrec := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xrec_ptr))
@@ -1700,16 +1711,24 @@ func async_dbm_compare_exchange(
 	var xexpected_ptr *C.char
 	var xexpected_size C.int32_t
 	if expected != nil {
-		xexpected_ptr = (*C.char)(C.CBytes(expected))
-		defer C.free(unsafe.Pointer(xexpected_ptr))
-		xexpected_size = C.int32_t(len(expected))
+		if IsAnyBytes(expected) {
+			xexpected_ptr = C.TKRZW_ANY_DATA;
+		} else {
+			xexpected_ptr = (*C.char)(C.CBytes(expected))
+			defer C.free(unsafe.Pointer(xexpected_ptr))
+			xexpected_size = C.int32_t(len(expected))
+		}
 	}
 	var xdesired_ptr *C.char
 	var xdesired_size C.int32_t
 	if desired != nil {
-		xdesired_ptr = (*C.char)(C.CBytes(desired))
-		defer C.free(unsafe.Pointer(xdesired_ptr))
-		xdesired_size = C.int32_t(len(desired))
+		if IsAnyBytes(desired) {
+			xdesired_ptr = C.TKRZW_ANY_DATA;
+		} else {
+			xdesired_ptr = (*C.char)(C.CBytes(desired))
+			defer C.free(unsafe.Pointer(xdesired_ptr))
+			xdesired_size = C.int32_t(len(desired))
+		}
 	}
 	xfuture := C.tkrzw_async_dbm_compare_exchange(xasync, xkey_ptr, C.int32_t(len(key)),
 		xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
@@ -1730,19 +1749,17 @@ func async_dbm_compare_exchange_multi(
 	xasync := (*C.TkrzwAsyncDBM)(unsafe.Pointer(async))
 	xexpected_size := len(expected) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xexpected := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xexpected_size + 1))))
-	defer C.tkrzw_free_str_map(xexpected, C.int32_t(len(expected)))
+	defer C.free_str_pairs(xexpected, C.int32_t(len(expected)))
 	xexp_ptr := uintptr(unsafe.Pointer(xexpected))
 	for _, pair := range expected {
 		xexp := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xexp_ptr))
-		if pair.Key == nil {
-			xexp.key_ptr = nil
-			xexp.key_size = 0
-		} else {
-			xexp.key_ptr = (*C.char)(C.CBytes(pair.Key))
-			xexp.key_size = C.int32_t(len(pair.Key))
-		}
+		xexp.key_ptr = (*C.char)(C.CBytes(pair.Key))
+		xexp.key_size = C.int32_t(len(pair.Key))
 		if pair.Value == nil {
 			xexp.value_ptr = nil
+			xexp.value_size = 0
+		} else if IsAnyBytes(pair.Value) {
+			xexp.value_ptr = C.TKRZW_ANY_DATA
 			xexp.value_size = 0
 		} else {
 			xexp.value_ptr = (*C.char)(C.CBytes(pair.Value))
@@ -1752,17 +1769,12 @@ func async_dbm_compare_exchange_multi(
 	}
 	xdesired_size := len(desired) * int(unsafe.Sizeof(C.TkrzwKeyValuePair{}))
 	xdesired := (*C.TkrzwKeyValuePair)(unsafe.Pointer(C.malloc(C.size_t(xdesired_size + 1))))
-	defer C.tkrzw_free_str_map(xdesired, C.int32_t(len(desired)))
+	defer C.free_str_pairs(xdesired, C.int32_t(len(desired)))
 	xdes_ptr := uintptr(unsafe.Pointer(xdesired))
 	for _, pair := range desired {
 		xdes := (*C.TkrzwKeyValuePair)(unsafe.Pointer(xdes_ptr))
-		if pair.Key == nil {
-			xdes.key_ptr = nil
-			xdes.key_size = 0
-		} else {
-			xdes.key_ptr = (*C.char)(C.CBytes(pair.Key))
-			xdes.key_size = C.int32_t(len(pair.Key))
-		}
+		xdes.key_ptr = (*C.char)(C.CBytes(pair.Key))
+		xdes.key_size = C.int32_t(len(pair.Key))
 		if pair.Value == nil {
 			xdes.value_ptr = nil
 			xdes.value_size = 0

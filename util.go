@@ -15,9 +15,20 @@ package tkrzw
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
+	"unsafe"
 )
+
+// The special bytes value for no-operation or any data.
+var AnyBytes = []byte("\x00[ANY]\x00")
+
+// The special string value for no-operation or any data.
+var AnyString = string([]byte("\x00[ANY]\x00"))
+
+// The special string value for non-existing data.
+var NilString = string([]byte("\x00[NIL]\x00"))
 
 // Converts any object into a string.
 //
@@ -187,6 +198,60 @@ func ToFloat(value interface{}) float64 {
 		}
 	}
 	return 0.0
+}
+
+// Checks whether the given data is a unique value of any data.
+//
+// @param data The data to check.
+// @return True if the data is any data or, false if not.
+func IsAnyData(data interface{}) bool {
+	switch data := data.(type) {
+	case []byte:
+		return IsAnyBytes(data)
+	case string:
+		return IsAnyString(data)
+	default:
+		return false
+	}
+}
+
+// Checks whether the given bytes are the any bytes.
+//
+// @param data The data to check.
+// @return True if the data are the any bytes.
+func IsAnyBytes(data []byte) bool {
+	return ((*reflect.SliceHeader)(unsafe.Pointer(&data)).Data ==
+		(*reflect.SliceHeader)(unsafe.Pointer(&AnyBytes)).Data)
+}
+
+// Checks whether the given string is the any string.
+//
+// @param data The data to check.
+// @return True if the data is the string, or false if not.
+func IsAnyString(data string) bool {
+		return ((*reflect.StringHeader)(unsafe.Pointer(&data)).Data ==
+			(*reflect.StringHeader)(unsafe.Pointer(&AnyString)).Data)
+}
+
+// Checks whether the given data is a nil-equivalent value.
+//
+// @param data The data to check.
+// @return True if the data is a nil-equivalent value, or false if not.
+func IsNilData(data interface{}) bool {
+	switch data := data.(type) {
+	case string:
+		return IsNilString(data)
+	}
+	return data == nil
+}
+
+// Checks whether the given string is the nil string.
+//
+// @param data The data to check.
+// @return True if the data is the nil string, or false if not.
+func IsNilString(data string) bool {
+	return ((*reflect.StringHeader)(unsafe.Pointer(&data)).Data ==
+		(*reflect.StringHeader)(unsafe.Pointer(&NilString)).Data)
 }
 
 // Gets the memory capacity of the platform.

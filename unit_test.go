@@ -71,7 +71,8 @@ func CheckEq(t *testing.T, want interface{}, got interface{}) {
 			}
 		case StatusCode:
 			if want != got {
-				t.Errorf("line=%d: not equal: want=%s, got=%s", line, StatusCodeName(want), StatusCodeName(got))
+				t.Errorf("line=%d: not equal: want=%s, got=%s", line,
+					StatusCodeName(want), StatusCodeName(got))
 			}
 		default:
 			t.Errorf("line=%d: not comparable: want=%s, got=%q", line, StatusCodeName(want), got)
@@ -128,7 +129,8 @@ func CheckNe(t *testing.T, want interface{}, got interface{}) {
 			}
 		case StatusCode:
 			if want == got {
-				t.Errorf("line=%d: equal: want=%s, got=%s", line, StatusCodeName(want), StatusCodeName(got))
+				t.Errorf("line=%d: equal: want=%s, got=%s",
+					line, StatusCodeName(want), StatusCodeName(got))
 			}
 		default:
 			t.Errorf("line=%d: not comparable: want=%s, got=%q", line, StatusCodeName(want), got)
@@ -259,6 +261,32 @@ func TestConstants(t *testing.T) {
 	CheckEq(t, ^uint64(0)>>1, Int64Max)
 }
 
+func TestSpecialData(t *testing.T) {
+	myAnyBytes := make([]byte, len(AnyBytes))
+	myAnyString := string([]byte(AnyString))
+	CheckFalse(t, IsAnyData(0))
+	CheckFalse(t, IsAnyData(nil))
+	CheckFalse(t, IsAnyData(""))
+	CheckTrue(t, IsAnyData(AnyBytes))
+	CheckTrue(t, IsAnyData(AnyString))
+	copy(myAnyBytes, AnyBytes)
+	CheckFalse(t, IsAnyData(myAnyBytes))
+	CheckFalse(t, IsAnyData(myAnyString))
+	CheckTrue(t, IsAnyBytes(AnyBytes))
+	CheckFalse(t, IsAnyBytes(myAnyBytes))
+	CheckTrue(t, IsAnyString(AnyString))
+	CheckFalse(t, IsAnyString(myAnyString))
+	myNilString := string([]byte(NilString))
+	CheckFalse(t, IsNilData(0))
+	CheckTrue(t, IsNilData(nil))
+	CheckFalse(t, IsNilData(""))
+	CheckTrue(t, IsNilData(NilString))
+	CheckFalse(t, IsNilData(myNilString))
+	CheckFalse(t, IsNilString(""))
+	CheckTrue(t, IsNilString(NilString))
+	CheckFalse(t, IsNilString(myNilString))
+}
+
 func TestMiscUtils(t *testing.T) {
 	if OSName == "Linux" {
 		CheckTrue(t, GetMemoryCapacity() > 0)
@@ -376,6 +404,14 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, "second", dbm.GetSimple("num", "*"))
 	CheckEq(t, StatusSuccess, dbm.CompareExchange("num", "second", nil))
 	CheckEq(t, "*", dbm.GetSimple("num", "*"))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchange("xyz", AnyString, AnyString))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("xyz", nil, "abc"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("xyz", AnyBytes, AnyBytes))
+	CheckEq(t, "abc", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("xyz", AnyBytes, "def"))
+	CheckEq(t, "def", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchange("xyz", AnyString, nil))
+	CheckEq(t, "*", dbm.GetSimple("xyz", "*"))
 	incValue, status := dbm.Increment("num", 2, 100)
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 102, incValue)
@@ -436,8 +472,22 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(set3, set1))
 	CheckEq(t, "*", dbm.GetSimple("one", "*"))
 	CheckEq(t, "*", dbm.GetSimple("two", "*"))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMulti(
+		[]KeyValuePair{{[]byte("xyz"), AnyBytes}},
+		[]KeyValuePair{{[]byte("xyz"), []byte("abc")}}));
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(
+		[]KeyValuePair{{[]byte("xyz"), nil}},
+		[]KeyValuePair{{[]byte("xyz"), []byte("abc")}}));
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(
+		[]KeyValuePair{{[]byte("xyz"), []byte("abc")}},
+		[]KeyValuePair{{[]byte("xyz"), []byte("def")}}));
+	CheckEq(t, "def", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMulti(
+		[]KeyValuePair{{[]byte("xyz"), []byte("def")}},
+		[]KeyValuePair{{[]byte("xyz"), nil}}));
+	CheckEq(t, "*", dbm.GetSimple("xyz", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
-	set4 := []KeyValueStrPair{KeyValueStrPair{"one", ""}, KeyValueStrPair{"two", ""}}
+	set4 := []KeyValueStrPair{KeyValueStrPair{"one", NilString}, KeyValueStrPair{"two", NilString}}
 	set5 := []KeyValueStrPair{KeyValueStrPair{"one", "apple"}, KeyValueStrPair{"two", "orange"}}
 	CheckEq(t, StatusSuccess, dbm.CompareExchangeMultiStr(set4, set5))
 	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMultiStr(set4, set5))
@@ -447,6 +497,20 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMultiStr(set5, set4))
 	CheckEq(t, "*", dbm.GetSimple("one", "*"))
 	CheckEq(t, "*", dbm.GetSimple("two", "*"))
+	CheckEq(t, StatusInfeasibleError, dbm.CompareExchangeMultiStr(
+		[]KeyValueStrPair{{"xyz", AnyString}},
+		[]KeyValueStrPair{{"xyz", "abc"}}));
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMultiStr(
+		[]KeyValueStrPair{{"xyz", NilString}},
+		[]KeyValueStrPair{{"xyz", "abc"}}));
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMultiStr(
+		[]KeyValueStrPair{{"xyz", "abc"}},
+		[]KeyValueStrPair{{"xyz", "def"}}));
+	CheckEq(t, "def", dbm.GetStrSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, dbm.CompareExchangeMultiStr(
+		[]KeyValueStrPair{{"xyz", "def"}},
+		[]KeyValueStrPair{{"xyz", NilString}}));
+	CheckEq(t, "*", dbm.GetStrSimple("xyz", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
 	fileSize, status := dbm.GetFileSize()
 	CheckEq(t, StatusSuccess, status)
@@ -844,6 +908,14 @@ func TestAsyncDBM(t *testing.T) {
 	CheckEq(t, "second", dbm.GetSimple("num", "*"))
 	CheckEq(t, StatusSuccess, async.CompareExchange("num", "second", nil).Get())
 	CheckEq(t, "*", dbm.GetSimple("num", "*"))
+	CheckEq(t, StatusInfeasibleError, async.CompareExchange("xyz", AnyBytes, AnyBytes).Get())
+	CheckEq(t, StatusSuccess, async.CompareExchange("xyz", NilString, "abc").Get())
+	CheckEq(t, StatusSuccess, async.CompareExchange("xyz", AnyString, AnyString).Get())
+	CheckEq(t, "abc", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, async.CompareExchange("xyz", AnyString, "def").Get())
+	CheckEq(t, "def", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, async.CompareExchange("xyz", AnyString, NilString).Get())
+	CheckEq(t, "*", dbm.GetSimple("xyz", "*"))
 	incValue, status := async.Increment("num", 2, 100).GetInt()
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 102, incValue)
@@ -868,7 +940,7 @@ func TestAsyncDBM(t *testing.T) {
 	CheckEq(t, "*", dbm.GetSimple("one", "*"))
 	CheckEq(t, "*", dbm.GetSimple("two", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
-	set4 := []KeyValueStrPair{KeyValueStrPair{"one", ""}, KeyValueStrPair{"two", ""}}
+	set4 := []KeyValueStrPair{KeyValueStrPair{"one", NilString}, KeyValueStrPair{"two", NilString}}
 	set5 := []KeyValueStrPair{KeyValueStrPair{"one", "apple"}, KeyValueStrPair{"two", "orange"}}
 	CheckEq(t, StatusSuccess, async.CompareExchangeMultiStr(set4, set5).Get())
 	CheckEq(t, StatusInfeasibleError, async.CompareExchangeMultiStr(set4, set5).Get())
@@ -884,6 +956,21 @@ func TestAsyncDBM(t *testing.T) {
 	CheckEq(t, StatusSuccess, async.Synchronize(false, nil).Get())
 	CheckEq(t, StatusSuccess, async.CopyFileData(copyPath, false).Get())
 	CheckEq(t, StatusSuccess, async.Clear().Get())
+	CheckEq(t, StatusInfeasibleError, async.CompareExchangeMultiStr(
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", AnyString}},
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", AnyString}}).Get());
+	CheckEq(t, StatusSuccess, async.CompareExchangeMultiStr(
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", NilString}},
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", "abc"}}).Get());
+	CheckEq(t, "abc", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, async.CompareExchangeMultiStr(
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", AnyString}},
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", "def"}}).Get());
+	CheckEq(t, "def", dbm.GetSimple("xyz", "*"))
+	CheckEq(t, StatusSuccess, async.CompareExchangeMultiStr(
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", AnyString}},
+		[]KeyValueStrPair{KeyValueStrPair{"xyz", NilString}}).Get());
+	CheckEq(t, "*", dbm.GetSimple("xyz", "*"))
 	CheckEq(t, 0, dbm.CountSimple())
 	copyDBM := NewDBM()
 	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, true, nil))
