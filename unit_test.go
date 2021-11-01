@@ -423,8 +423,6 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, "123", actual)
 
-
-	
 	incValue, status := dbm.Increment("num", 2, 100)
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 102, incValue)

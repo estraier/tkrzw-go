@@ -305,7 +305,7 @@ RES_BYTES do_dbm_compare_exchange_and_get(
   res.status.message = copy_status_message(status.message);
   return res;
 }
-   
+
 RES_INT do_dbm_increment(
     TkrzwDBM* dbm, const char* key_ptr, int32_t key_size, int64_t inc, int64_t init) {
   RES_INT res;
