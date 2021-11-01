@@ -444,6 +444,52 @@ func (self *DBM) CompareExchange(
 	return dbm_compare_exchange(self.dbm, ToByteArray(key), rawExpected, rawDesired)
 }
 
+// Does compare-and-exchange and/or gets the old value of the record.
+//
+// @param key The key of the record.
+// @param expected The expected value.  If it is nil or NilString, no existing record is expected.  If it is AnyBytes or AnyString, an existing record with any value is expacted.
+// @param desired The desired value.  If it is nil or NilString, the record is to be removed.  If it is AnyBytes or AnyString, no update is done.
+// @return The old value and the result status.  If the condition doesn't meet, the state is INFEASIBLE_ERROR.  If there's no existing record, the value is nil.
+func (self *DBM) CompareExchangeAndGet(
+	key interface{}, expected interface{}, desired interface{}) ([]byte, *Status) {
+	if self.dbm == 0 {
+		return nil, NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	var rawExpected []byte
+	if !IsNilData(expected) {
+		if IsAnyData(expected) {
+			rawExpected = AnyBytes
+		} else {
+			rawExpected = ToByteArray(expected)
+		}
+	}
+	var rawDesired []byte
+	if !IsNilData(desired) {
+		if IsAnyData(desired) {
+			rawDesired = AnyBytes
+		} else {
+			rawDesired = ToByteArray(desired)
+		}
+	}
+	return dbm_compare_exchange_and_get(self.dbm, ToByteArray(key), rawExpected, rawDesired)
+}
+
+// Does compare-and-exchange and/or gets the old value of the record, as a string.
+//
+// @param key The key of the record.
+// @param expected The expected value.  If it is nil or NilString, no existing record is expected.  If it is AnyBytes or AnyString, an existing record with any value is expacted.
+// @param desired The desired value.  If it is nil or NilString, the record is to be removed.  If it is AnyBytes or AnyString, no update is done.
+// @return The old value and the result status.  If the condition doesn't meet, the state is INFEASIBLE_ERROR.  If there's no existing record, the value is NilString.
+func (self *DBM) CompareExchangeAndGetStr(
+	key interface{}, expected interface{}, desired interface{}) (string, *Status) {
+	rawActual, status := self.CompareExchangeAndGet(key, expected, desired)
+	actual := NilString
+	if rawActual != nil {
+		actual = string(rawActual)
+	}
+	return actual, status
+}
+
 // Increments the numeric value of a record.
 //
 // @param key The key of the record.

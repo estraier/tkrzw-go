@@ -412,6 +412,19 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, "def", dbm.GetSimple("xyz", "*"))
 	CheckEq(t, StatusSuccess, dbm.CompareExchange("xyz", AnyString, nil))
 	CheckEq(t, "*", dbm.GetSimple("xyz", "*"))
+
+	actual, status := dbm.CompareExchangeAndGetStr("xyz", nil, "123")
+	CheckEq(t, StatusSuccess, status)
+	CheckTrue(t, IsNilString(actual))
+	actual, status = dbm.CompareExchangeAndGetStr("xyz", AnyString, AnyString)
+	CheckEq(t, StatusSuccess, status)
+	CheckEq(t, "123", actual)
+	actual, status = dbm.CompareExchangeAndGetStr("xyz", AnyString, NilString)
+	CheckEq(t, StatusSuccess, status)
+	CheckEq(t, "123", actual)
+
+
+	
 	incValue, status := dbm.Increment("num", 2, 100)
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, 102, incValue)

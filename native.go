@@ -292,6 +292,20 @@ RES_STATUS do_dbm_compare_exchange(
   return res;
 }
 
+RES_BYTES do_dbm_compare_exchange_and_get(
+    TkrzwDBM* dbm, const char* key_ptr, int32_t key_size,
+    const char* expected_ptr, int32_t expected_size,
+    const char* desired_ptr, int32_t desired_size) {
+  RES_BYTES res;
+  res.value_ptr = tkrzw_dbm_compare_exchange_and_get(
+      dbm, key_ptr, key_size, expected_ptr, expected_size, desired_ptr, desired_size,
+      &res.value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+   
 RES_INT do_dbm_increment(
     TkrzwDBM* dbm, const char* key_ptr, int32_t key_size, int64_t inc, int64_t init) {
   RES_INT res;
@@ -1160,6 +1174,45 @@ func dbm_compare_exchange(dbm uintptr, key []byte, expected []byte, desired []by
 		xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
 	status := convert_status(res)
 	return status
+}
+
+func dbm_compare_exchange_and_get(
+	dbm uintptr, key []byte, expected []byte, desired []byte) ([]byte, *Status) {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	var xexpected_ptr *C.char
+	var xexpected_size C.int32_t
+	if expected != nil {
+		if IsAnyBytes(expected) {
+			xexpected_ptr = C.TKRZW_ANY_DATA
+		} else {
+			xexpected_ptr = (*C.char)(C.CBytes(expected))
+			defer C.free(unsafe.Pointer(xexpected_ptr))
+			xexpected_size = C.int32_t(len(expected))
+		}
+	}
+	var xdesired_ptr *C.char
+	var xdesired_size C.int32_t
+	if desired != nil {
+		if IsAnyBytes(desired) {
+			xdesired_ptr = C.TKRZW_ANY_DATA
+		} else {
+			xdesired_ptr = (*C.char)(C.CBytes(desired))
+			defer C.free(unsafe.Pointer(xdesired_ptr))
+			xdesired_size = C.int32_t(len(desired))
+		}
+	}
+	res := C.do_dbm_compare_exchange_and_get(
+		xdbm, xkey_ptr, C.int32_t(len(key)),
+		xexpected_ptr, xexpected_size, xdesired_ptr, xdesired_size)
+	var actual []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		actual = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	status := convert_status(res.status)
+	return actual, status
 }
 
 func dbm_increment(dbm uintptr, key []byte, inc int64, init int64) (int64, *Status) {
