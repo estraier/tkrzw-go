@@ -51,7 +51,7 @@ install :
 	@printf '\n'
 	@printf '#================================================================\n'
 	@printf '# Installation is not necessary.\n'
-	@printf '# Just import "github.com/estraier/tkrzw-go" in your Go code.\n'
+	@printf '# Import "github.com/estraier/tkrzw-go" in your code and run "go get".\n'
 	@printf '#================================================================\n'
 
 dist :
