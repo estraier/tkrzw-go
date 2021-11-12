@@ -618,6 +618,8 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, false, nil))
 	CheckEq(t, 11, copyDBM.CountSimple())
 	CheckEq(t, StatusSuccess, copyDBM.Close())
+	CheckEq(t, StatusSuccess, dbm.Open(filePath, false, nil))
+	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
 func TestDBMIterator(t *testing.T) {
