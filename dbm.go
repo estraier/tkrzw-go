@@ -169,6 +169,17 @@ func (self *DBM) Close() *Status {
 	return status
 }
 
+// Checks if a record exists or not.
+//
+// @param key The key of the record.
+// @return True if the record exists, or false if not.
+func (self *DBM) Check(key interface{}) bool {
+	if self.dbm == 0 {
+		return false
+	}
+	return dbm_check(self.dbm, ToByteArray(key))
+}
+
 // Gets the value of a record of a key.
 //
 // @param key The key of the record.

@@ -934,6 +934,13 @@ func dbm_close(dbm uintptr) *Status {
 	return status
 }
 
+func dbm_check(dbm uintptr, key []byte) bool {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	return (bool)(C.tkrzw_dbm_check(xdbm, xkey_ptr, C.int32_t(len(key))))
+}
+
 func dbm_get(dbm uintptr, key []byte) ([]byte, *Status) {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	xkey_ptr := (*C.char)(C.CBytes(key))
