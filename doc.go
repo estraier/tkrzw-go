@@ -54,6 +54,11 @@ The following code is a simple example to use a database, without checking error
    fmt.Println(dbm.GetStrSimple("second", "*"))
    fmt.Println(dbm.GetStrSimple("third", "*"))
 
+   // Checks and deletes a record.
+   if dbm.Check("first") {
+     dbm.Remove("first")
+   }
+
    // Traverses records with a range over a channel.
    for record := range dbm.EachStr() {
      fmt.Println(record.Key, record.Value)
