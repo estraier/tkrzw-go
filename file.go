@@ -189,7 +189,7 @@ func (self *File) GetPath() (string, *Status) {
 
 // Searches the file and get lines which match a pattern.
 //
-// @param mode The search mode.  "contain" extracts lines containing the pattern.  "begin" extracts lines beginning with the pattern.  "end" extracts lines ending with the pattern.  "regex" extracts lines partially matches the pattern of a regular expression.  "edit" extracts lines whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts lines whose edit distance to the binary pattern is the least.
+// @param mode The search mode.  "contain" extracts lines containing the pattern.  "begin" extracts lines beginning with the pattern.  "end" extracts lines ending with the pattern.  "regex" extracts lines partially matches the pattern of a regular expression.  "edit" extracts lines whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts lines whose edit distance to the binary pattern is the least.  "containcase", "containword", and "containcaseword" extract keys considering case and word boundary.  Ordered databases support "upper" and "lower" which extract keys whose positions are upper/lower than the pattern. "upperinc" and "lowerinc" are their inclusive versions.
 // @param pattern The pattern for matching.
 // @param capacity The maximum records to obtain.  0 means unlimited.
 // @return A list of lines matching the condition.
