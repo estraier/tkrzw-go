@@ -624,6 +624,47 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, dbm.Close())
 }
 
+func TestDBMProcess(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	filePath := path.Join(tmpDir, "casket.tkh")
+	dbm := NewDBM()
+	status := dbm.Open(filePath, true, ParseParams("truncate=true,num_buckets=1000"))
+	CheckEq(t, StatusSuccess, status)
+	CheckEq(t, StatusSuccess,
+		dbm.Process("abc", func(k []byte, v []byte) []byte { return nil }, true))
+	CheckEq(t, "*", dbm.GetStrSimple("abc", "*"))
+	CheckEq(t, StatusSuccess,
+		dbm.Process("abc", func(k []byte, v []byte) []byte { return RemoveBytes }, true))
+	CheckEq(t, "*", dbm.GetStrSimple("abc", "*"))
+	CheckEq(t, StatusSuccess,
+		dbm.Process("abc", func(k []byte, v []byte) []byte { return []byte("ABCDE") }, true))
+	CheckEq(t, "ABCDE", dbm.GetStrSimple("abc", "*"))
+	proc1 := func(k []byte, v []byte) []byte {
+		CheckEq(t, "abc", string(k))
+		CheckEq(t, "ABCDE", string(v))
+		return nil
+	}
+	CheckEq(t, StatusSuccess, dbm.Process("abc", proc1, true))
+	CheckEq(t, StatusSuccess,
+		dbm.Process("abc", func(k []byte, v []byte) []byte { return RemoveBytes }, true))
+	CheckEq(t, "*", dbm.GetStrSimple("abc", "*"))
+	proc2 := func(k []byte, v []byte) []byte {
+		CheckEq(t, "abc", string(k))
+		CheckTrue(t, v == nil)
+		return nil
+	}
+	CheckEq(t, StatusSuccess, dbm.Process("abc", proc2, false))
+	for i := 0; i < 10; i++ {
+		CheckEq(t, StatusSuccess,
+			dbm.Process(ToString(i), func(k []byte, v []byte) []byte {
+				return []byte(ToString(i * i))
+			}, true))
+	}
+	CheckEq(t, 10, dbm.CountSimple())
+	CheckEq(t, StatusSuccess, dbm.Close())
+}
+
 func TestDBMIterator(t *testing.T) {
 	tmpDir := MakeTempDir()
 	defer os.RemoveAll(tmpDir)

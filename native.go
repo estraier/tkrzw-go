@@ -88,6 +88,19 @@ typedef struct {
   RES_STATUS status;
 } RES_REC;
 
+typedef struct {
+  void* proc_up;
+  void* buffer;
+} RecordProcessorArg;
+
+struct callRecordProcessor_return {
+  void* ptr;
+  int32_t size;
+};
+
+extern struct callRecordProcessor_return callRecordProcessor(
+  void* up, void* keyPtr, int32_t keySize, void* valuePtr, int32_t valueSize);
+
 char* copy_status_message(const char* message) {
   if (*message == '\0') {
     return NULL;
@@ -108,6 +121,30 @@ void free_str_pairs(TkrzwKeyValuePair* array, int32_t size) {
     }
   }
   free(array);
+}
+
+const char* run_record_processor(
+  RecordProcessorArg* arg, const char* key_ptr, int32_t key_size,
+  const char* value_ptr, int32_t value_size, int32_t* ret_size) {
+  if (arg->buffer) {
+    free(arg->buffer);
+    arg->buffer = NULL;
+  }
+  struct callRecordProcessor_return rv = callRecordProcessor(
+    arg->proc_up, (void*)key_ptr, key_size, (void*)value_ptr, value_size);
+  const char* ret_ptr;
+  if (rv.ptr == NULL) {
+    ret_ptr = TKRZW_REC_PROC_NOOP;
+    *ret_size = 0;
+  } else if (rv.ptr == (void*)1) {
+    ret_ptr = TKRZW_REC_PROC_REMOVE;
+    *ret_size = 0;
+  } else {
+    ret_ptr = rv.ptr;
+    *ret_size = rv.size;
+    arg->buffer = rv.ptr;
+  }
+  return ret_ptr;
 }
 
 RES_STATUS do_future_get(TkrzwFuture* future) {
@@ -182,6 +219,21 @@ RES_DBM do_dbm_open(const char* path, bool writable, const char* params) {
 RES_STATUS do_dbm_close(TkrzwDBM* dbm) {
   RES_STATUS res;
   tkrzw_dbm_close(dbm);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_dbm_process(TkrzwDBM* dbm, const char* key_ptr, int32_t key_size,
+                          void* proc_up, bool writable) {
+  RES_STATUS res;
+  RecordProcessorArg proc_arg;
+  proc_arg.proc_up = proc_up;
+  proc_arg.buffer = NULL;
+  tkrzw_dbm_process(dbm, key_ptr, key_size, (tkrzw_record_processor)run_record_processor,
+    &proc_arg, writable);
+  free(proc_arg.buffer);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
@@ -930,6 +982,17 @@ func dbm_open(path string, writable bool, params map[string]string) (uintptr, *S
 func dbm_close(dbm uintptr) *Status {
 	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
 	res := C.do_dbm_close(xdbm)
+	status := convert_status(res)
+	return status
+}
+
+func dbm_process(dbm uintptr, key []byte, proc RecordProcessor, writable bool) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	proc_up := registerRecordProcessor(proc)
+	defer deregisterRecordProcessor(proc_up)
+	res := C.do_dbm_process(xdbm, xkey_ptr, C.int32_t(len(key)), proc_up, C.bool(writable))
 	status := convert_status(res)
 	return status
 }

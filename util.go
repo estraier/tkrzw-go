@@ -13,13 +13,20 @@
 
 package tkrzw
 
+// #include <stdlib.h>
+import "C"
+
 import (
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"unsafe"
 )
+
+// The special bytes value to remove a record.
+var RemoveBytes = []byte("\x00[REMOVE]\x00")
 
 // The special bytes value for no-operation or any data.
 var AnyBytes = []byte("\x00[ANY]\x00")
@@ -200,6 +207,15 @@ func ToFloat(value interface{}) float64 {
 	return 0.0
 }
 
+// Checks whether the given bytes are the removing bytes.
+//
+// @param data The data to check.
+// @return True if the data are the removing bytes.
+func IsRemoveBytes(data []byte) bool {
+	return ((*reflect.SliceHeader)(unsafe.Pointer(&data)).Data ==
+		(*reflect.SliceHeader)(unsafe.Pointer(&RemoveBytes)).Data)
+}
+
 // Checks whether the given data is a unique value of any data.
 //
 // @param data The data to check.
@@ -314,6 +330,64 @@ func ParseParams(expr string) map[string]string {
 		}
 	}
 	return params
+}
+
+// Storage to make RecordProcessor accessible to the C code.
+type RecordProcessorPool struct {
+	data  map[unsafe.Pointer]RecordProcessor
+	mutex sync.Mutex
+}
+
+var recordProcessorPool = RecordProcessorPool{data: make(map[unsafe.Pointer]RecordProcessor)}
+
+// Register a Go function to the storage.
+func registerRecordProcessor(proc RecordProcessor) unsafe.Pointer {
+	var up unsafe.Pointer = C.malloc(C.size_t(1))
+	if up == nil {
+		panic("memory allocation failed")
+	}
+	recordProcessorPool.mutex.Lock()
+	recordProcessorPool.data[up] = proc
+	recordProcessorPool.mutex.Unlock()
+	return up
+}
+
+// Deregister a Go function from the storage.
+func deregisterRecordProcessor(up unsafe.Pointer) {
+	recordProcessorPool.mutex.Lock()
+	delete(recordProcessorPool.data, up)
+	recordProcessorPool.mutex.Unlock()
+	C.free(up)
+}
+
+// Call a Go function in the storage.
+//export callRecordProcessor
+func callRecordProcessor(up unsafe.Pointer, keyPtr unsafe.Pointer, keySize C.int32_t,
+	valuePtr unsafe.Pointer, valueSize C.int32_t) (unsafe.Pointer, int32) {
+	recordProcessorPool.mutex.Lock()
+	proc := recordProcessorPool.data[up]
+	recordProcessorPool.mutex.Unlock()
+	key := C.GoBytes(keyPtr, keySize)
+	var value []byte
+	if valuePtr == nil {
+		value = nil
+	} else {
+		value = C.GoBytes(valuePtr, valueSize)
+	}
+	rv := proc(key, value)
+	var retPtr unsafe.Pointer
+	var retSize int32
+	if rv == nil {
+		retPtr = nil
+		retSize = 0
+	} else if IsRemoveBytes(rv) {
+		retPtr = unsafe.Pointer(uintptr(1))
+		retSize = 0
+	} else {
+		retPtr = C.CBytes(rv)
+		retSize = int32(len(rv))
+	}
+	return retPtr, retSize
 }
 
 // END OF FILE

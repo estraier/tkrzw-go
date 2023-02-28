@@ -1,7 +1,7 @@
 # Makefile for Tkrzw for Go
 
 PACKAGE := tkrzw-go
-VERSION := 0.1.28
+VERSION := 0.1.29
 PACKAGEDIR := $(PACKAGE)-$(VERSION)
 PACKAGETGZ := $(PACKAGE)-$(VERSION).tar.gz
 
@@ -43,7 +43,7 @@ fmt :
 	$(RUNENV) $(GOCMD) fmt
 
 clean :
-	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni go.sum
+	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni go.sum _obj
 	[ ! -f perf/Makefile ] || cd perf && $(MAKE) clean
 	[ ! -f wicked/Makefile ] || cd wicked && $(MAKE) clean
 

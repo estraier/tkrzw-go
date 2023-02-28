@@ -41,6 +41,9 @@ type KeyValueStrPair struct {
 	Value string
 }
 
+// A function to process a record.
+type RecordProcessor func(key []byte, value []byte) []byte
+
 // Makes a new DBM object.
 //
 // @return The pointer to the created database object.
@@ -168,6 +171,19 @@ func (self *DBM) Close() *Status {
 	status := dbm_close(self.dbm)
 	self.dbm = 0
 	return status
+}
+
+// Processes a record with an arbitrary function.
+//
+// @param key The key of the record.
+// @param proc The function to process a record.  The first parameter is the key bytes of the record.  The second parameter is the value bytes of the existing record, or nil if it the record doesn't exist.  The return value is bytes to update the record value.  If the return value is nil, the record is not modified.  If the return value is RemoveBytes, the record is removed.
+// @param writable True if the processor can edit the record.
+// @return The result status.
+func (self *DBM) Process(key interface{}, proc RecordProcessor, writable bool) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_process(self.dbm, ToByteArray(key), proc, writable)
 }
 
 // Checks if a record exists or not.

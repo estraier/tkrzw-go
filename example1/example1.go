@@ -37,7 +37,7 @@ func main() {
 
 	// Checks and deletes a record.
 	if dbm.Check("first") {
-    dbm.Remove("first")
+		dbm.Remove("first")
 	}
 
 	// Traverses records with a range over a channel.
