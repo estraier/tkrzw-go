@@ -16,6 +16,7 @@ package tkrzw
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"path"
@@ -28,8 +29,9 @@ import (
 
 func CheckEq(t *testing.T, want interface{}, got interface{}) {
 	_, _, line, _ := runtime.Caller(1)
-	if want == nil {
-		if got != nil {
+	if IsNilData(want) {
+		if !IsNilData(got) {
+			println(got, IsNilData(got), got == nil)
 			t.Errorf("line=%d: not equal: want=%q, got=%q", line, want, got)
 		}
 		return
@@ -86,8 +88,8 @@ func CheckEq(t *testing.T, want interface{}, got interface{}) {
 
 func CheckNe(t *testing.T, want interface{}, got interface{}) {
 	_, _, line, _ := runtime.Caller(1)
-	if want == nil {
-		if got == nil {
+	if IsNilData(want) {
+		if IsNilData(got) {
 			t.Errorf("line=%d: equal: want=%q, got=%q", line, want, got)
 		}
 		return
@@ -168,6 +170,7 @@ func MakeTempDir() string {
 
 func TestAssertion(t *testing.T) {
 	CheckEq(t, nil, nil)
+	CheckEq(t, interface{}(nil), interface{}(nil))
 	CheckNe(t, nil, 0)
 	CheckEq(t, 2, 2)
 	CheckEq(t, 2.0, 2.0)
@@ -431,7 +434,7 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, 105, incValue)
 	CheckEq(t, StatusSuccess, dbm.Remove("num"))
 	oldValue, status := dbm.SetAndGet("zero", "nil", false)
-	CheckTrue(t, oldValue == nil)
+	CheckEq(t, nil, oldValue)
 	CheckEq(t, StatusSuccess, status)
 	oldValue, status = dbm.SetAndGet("zero", "nothing", false)
 	CheckEq(t, "nil", oldValue)
@@ -443,16 +446,16 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, "nil", oldValue)
 	CheckEq(t, StatusSuccess, status)
 	oldValue, status = dbm.RemoveAndGet("zero")
-	CheckTrue(t, oldValue == nil)
+	CheckEq(t, nil, oldValue)
 	CheckEq(t, StatusNotFoundError, status)
 	oldStrValue, status = dbm.SetAndGetStr("zero", "void", false)
-	CheckTrue(t, oldValue == nil)
+	CheckEq(t, nil, oldValue)
 	CheckEq(t, StatusSuccess, status)
 	oldStrValue, status = dbm.RemoveAndGetStr("zero")
 	CheckEq(t, "void", *oldStrValue)
 	CheckEq(t, StatusSuccess, status)
 	oldStrValue, status = dbm.RemoveAndGetStr("zero")
-	CheckTrue(t, oldValue == nil)
+	CheckEq(t, nil, oldValue)
 	CheckEq(t, StatusNotFoundError, status)
 	records := map[string]string{"one": "first", "two": "second"}
 	CheckEq(t, StatusSuccess, dbm.SetMultiStr(records, false))
@@ -632,36 +635,68 @@ func TestDBMProcess(t *testing.T) {
 	status := dbm.Open(filePath, true, ParseParams("truncate=true,num_buckets=1000"))
 	CheckEq(t, StatusSuccess, status)
 	CheckEq(t, StatusSuccess,
-		dbm.Process("abc", func(k []byte, v []byte) []byte { return nil }, true))
+		dbm.Process("abc", func(k []byte, v []byte) interface{} { return nil }, true))
 	CheckEq(t, "*", dbm.GetStrSimple("abc", "*"))
 	CheckEq(t, StatusSuccess,
-		dbm.Process("abc", func(k []byte, v []byte) []byte { return RemoveBytes }, true))
+		dbm.Process("abc", func(k []byte, v []byte) interface{} { return RemoveBytes }, true))
 	CheckEq(t, "*", dbm.GetStrSimple("abc", "*"))
 	CheckEq(t, StatusSuccess,
-		dbm.Process("abc", func(k []byte, v []byte) []byte { return []byte("ABCDE") }, true))
+		dbm.Process("abc", func(k []byte, v []byte) interface{} { return []byte("ABCDE") }, true))
 	CheckEq(t, "ABCDE", dbm.GetStrSimple("abc", "*"))
-	proc1 := func(k []byte, v []byte) []byte {
+	proc1 := func(k []byte, v []byte) interface{} {
 		CheckEq(t, "abc", string(k))
 		CheckEq(t, "ABCDE", string(v))
 		return nil
 	}
 	CheckEq(t, StatusSuccess, dbm.Process("abc", proc1, true))
 	CheckEq(t, StatusSuccess,
-		dbm.Process("abc", func(k []byte, v []byte) []byte { return RemoveBytes }, true))
+		dbm.Process("abc", func(k []byte, v []byte) interface{} { return RemoveBytes }, true))
 	CheckEq(t, "*", dbm.GetStrSimple("abc", "*"))
-	proc2 := func(k []byte, v []byte) []byte {
+	proc2 := func(k []byte, v []byte) interface{} {
 		CheckEq(t, "abc", string(k))
-		CheckTrue(t, v == nil)
+		CheckEq(t, nil, v)
 		return nil
 	}
 	CheckEq(t, StatusSuccess, dbm.Process("abc", proc2, false))
 	for i := 0; i < 10; i++ {
 		CheckEq(t, StatusSuccess,
-			dbm.Process(ToString(i), func(k []byte, v []byte) []byte {
+			dbm.Process(ToString(i), func(k []byte, v []byte) interface{} {
 				return []byte(ToString(i * i))
 			}, true))
 	}
 	CheckEq(t, 10, dbm.CountSimple())
+	count_full := 0
+	count_empty := 0
+	proc3 := func(k []byte, v []byte) interface{} {
+		if k == nil {
+			count_empty += 1
+		} else {
+			count_full += 1
+			num := ToInt(k)
+			CheckEq(t, num*num, ToInt(v))
+		}
+		return nil
+	}
+	CheckEq(t, StatusSuccess, dbm.ProcessEach(proc3, false))
+	CheckEq(t, 2, count_empty)
+	CheckEq(t, 10, count_full)
+	proc4 := func(k []byte, v []byte) interface{} {
+		if k == nil {
+			return nil
+		}
+		num := ToInt(v)
+		return int(math.Sqrt(float64(num)))
+	}
+	CheckEq(t, StatusSuccess, dbm.ProcessEach(proc4, true))
+	proc5 := func(k []byte, v []byte) interface{} {
+		if k == nil {
+			return nil
+		}
+		CheckEq(t, ToInt(k), ToInt(v))
+		return RemoveBytes
+	}
+	CheckEq(t, StatusSuccess, dbm.ProcessEach(proc5, true))
+	CheckEq(t, 0, dbm.CountSimple())
 	CheckEq(t, StatusSuccess, dbm.Close())
 }
 

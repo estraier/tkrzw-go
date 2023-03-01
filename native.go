@@ -411,6 +411,19 @@ RES_STATUS do_dbm_push_last(
   return res;
 }
 
+RES_STATUS do_dbm_process_each(TkrzwDBM* dbm, void* proc_up, bool writable) {
+  RES_STATUS res;
+  RecordProcessorArg proc_arg;
+  proc_arg.proc_up = proc_up;
+  proc_arg.buffer = NULL;
+  tkrzw_dbm_process_each(dbm, (tkrzw_record_processor)run_record_processor, &proc_arg, writable);
+  free(proc_arg.buffer);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_INT do_dbm_count(TkrzwDBM* dbm) {
   RES_INT res;
   res.num = tkrzw_dbm_count(dbm);
@@ -1376,6 +1389,15 @@ func dbm_push_last(dbm uintptr, value []byte, wtime float64) *Status {
 	xvalue_ptr := (*C.char)(C.CBytes(value))
 	defer C.free(unsafe.Pointer(xvalue_ptr))
 	res := C.do_dbm_push_last(xdbm, xvalue_ptr, C.int32_t(len(value)), C.double(wtime))
+	status := convert_status(res)
+	return status
+}
+
+func dbm_process_each(dbm uintptr, proc RecordProcessor, writable bool) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	proc_up := registerRecordProcessor(proc)
+	defer deregisterRecordProcessor(proc_up)
+	res := C.do_dbm_process_each(xdbm, proc_up, C.bool(writable))
 	status := convert_status(res)
 	return status
 }

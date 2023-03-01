@@ -28,6 +28,9 @@ import (
 // The special bytes value to remove a record.
 var RemoveBytes = []byte("\x00[REMOVE]\x00")
 
+// The special string value to remove a record.
+var RemoveString = string([]byte("\x00[REMOVE]\x00"))
+
 // The special bytes value for no-operation or any data.
 var AnyBytes = []byte("\x00[ANY]\x00")
 
@@ -207,6 +210,21 @@ func ToFloat(value interface{}) float64 {
 	return 0.0
 }
 
+// Checks whether the given data is a unique value of removing data.
+//
+// @param data The data to check.
+// @return True if the data is removing data or false if not.
+func IsRemoveData(data interface{}) bool {
+	switch data := data.(type) {
+	case []byte:
+		return IsRemoveBytes(data)
+	case string:
+		return IsRemoveString(data)
+	default:
+		return false
+	}
+}
+
 // Checks whether the given bytes are the removing bytes.
 //
 // @param data The data to check.
@@ -216,10 +234,19 @@ func IsRemoveBytes(data []byte) bool {
 		(*reflect.SliceHeader)(unsafe.Pointer(&RemoveBytes)).Data)
 }
 
+// Checks whether the given string is the removing string.
+//
+// @param data The data to check.
+// @return True if the data is the removing string, or false if not.
+func IsRemoveString(data string) bool {
+	return ((*reflect.StringHeader)(unsafe.Pointer(&data)).Data ==
+		(*reflect.StringHeader)(unsafe.Pointer(&RemoveString)).Data)
+}
+
 // Checks whether the given data is a unique value of any data.
 //
 // @param data The data to check.
-// @return True if the data is any data or, false if not.
+// @return True if the data is any data or false if not.
 func IsAnyData(data interface{}) bool {
 	switch data := data.(type) {
 	case []byte:
@@ -243,7 +270,7 @@ func IsAnyBytes(data []byte) bool {
 // Checks whether the given string is the any string.
 //
 // @param data The data to check.
-// @return True if the data is the string, or false if not.
+// @return True if the data is the any string, or false if not.
 func IsAnyString(data string) bool {
 	return ((*reflect.StringHeader)(unsafe.Pointer(&data)).Data ==
 		(*reflect.StringHeader)(unsafe.Pointer(&AnyString)).Data)
@@ -255,6 +282,8 @@ func IsAnyString(data string) bool {
 // @return True if the data is a nil-equivalent value, or false if not.
 func IsNilData(data interface{}) bool {
 	switch data := data.(type) {
+	case []byte:
+		return reflect.ValueOf(data).IsNil()
 	case string:
 		return IsNilString(data)
 	}
@@ -367,7 +396,12 @@ func callRecordProcessor(up unsafe.Pointer, keyPtr unsafe.Pointer, keySize C.int
 	recordProcessorPool.mutex.Lock()
 	proc := recordProcessorPool.data[up]
 	recordProcessorPool.mutex.Unlock()
-	key := C.GoBytes(keyPtr, keySize)
+	var key []byte
+	if keyPtr == nil {
+		key = nil
+	} else {
+		key = C.GoBytes(keyPtr, keySize)
+	}
 	var value []byte
 	if valuePtr == nil {
 		value = nil
@@ -377,15 +411,16 @@ func callRecordProcessor(up unsafe.Pointer, keyPtr unsafe.Pointer, keySize C.int
 	rv := proc(key, value)
 	var retPtr unsafe.Pointer
 	var retSize int32
-	if rv == nil {
+	if IsNilData(rv) {
 		retPtr = nil
 		retSize = 0
-	} else if IsRemoveBytes(rv) {
+	} else if IsRemoveData(rv) {
 		retPtr = unsafe.Pointer(uintptr(1))
 		retSize = 0
 	} else {
-		retPtr = C.CBytes(rv)
-		retSize = int32(len(rv))
+		rv_bytes := ToByteArray(rv)
+		retPtr = C.CBytes(rv_bytes)
+		retSize = int32(len(rv_bytes))
 	}
 	return retPtr, retSize
 }

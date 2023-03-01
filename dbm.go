@@ -42,7 +42,7 @@ type KeyValueStrPair struct {
 }
 
 // A function to process a record.
-type RecordProcessor func(key []byte, value []byte) []byte
+type RecordProcessor func(key []byte, value []byte) interface{}
 
 // Makes a new DBM object.
 //
@@ -176,7 +176,7 @@ func (self *DBM) Close() *Status {
 // Processes a record with an arbitrary function.
 //
 // @param key The key of the record.
-// @param proc The function to process a record.  The first parameter is the key bytes of the record.  The second parameter is the value bytes of the existing record, or nil if it the record doesn't exist.  The return value is bytes to update the record value.  If the return value is nil, the record is not modified.  If the return value is RemoveBytes, the record is removed.
+// @param proc The function to process a record.  The first parameter is the key bytes of the record.  The second parameter is the value bytes of the existing record, or nil if it the record doesn't exist.  The return value is bytes or a string to update the record value.  If the return value is nil or NilString, the record is not modified.  If the return value is RemoveBytes or RemoveString, the record is removed.
 // @param writable True if the processor can edit the record.
 // @return The result status.
 func (self *DBM) Process(key interface{}, proc RecordProcessor, writable bool) *Status {
@@ -629,6 +629,20 @@ func (self *DBM) PushLast(value interface{}, wtime float64) *Status {
 		return NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_push_last(self.dbm, ToByteArray(value), wtime)
+}
+
+// Processes each and every record in the database with an arbitrary function.
+//
+// @param proc The function to process a record.  The first parameter is the key bytes of the record.  The second parameter is the value bytes of the existing record, or nil if it the record doesn't exist.  The return value is bytes or a string to update the record value.  If the return value is nil or NilString, the record is not modified.  If the return value is RemoveBytes or RemoveString, the record is removed.
+// @param writable True if the processor can edit the record.
+// @return The result status.
+//
+// The given function is called repeatedly for each record.  It is also called once before the iteration and once after the iteration with both the key and the value being nil.
+func (self *DBM) ProcessEach(proc RecordProcessor, writable bool) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	return dbm_process_each(self.dbm, proc, writable)
 }
 
 // Gets the number of records.
