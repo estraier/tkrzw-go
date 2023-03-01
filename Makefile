@@ -62,6 +62,7 @@ dist :
 	[ ! -f example2/Makefile ] || cd example2 && $(MAKE) fmt
 	[ ! -f example3/Makefile ] || cd example3 && $(MAKE) fmt
 	[ ! -f example4/Makefile ] || cd example4 && $(MAKE) fmt
+	[ ! -f example5/Makefile ] || cd example5 && $(MAKE) fmt
 	$(MAKE) distclean
 	rm -Rf "../$(PACKAGEDIR)" "../$(PACKAGETGZ)"
 	cd .. && cp -R tkrzw-go $(PACKAGEDIR) && \
@@ -76,6 +77,7 @@ distclean : clean apidocclean
 	[ ! -f example2/Makefile ] || cd example2 && $(MAKE) clean
 	[ ! -f example3/Makefile ] || cd example3 && $(MAKE) clean
 	[ ! -f example4/Makefile ] || cd example4 && $(MAKE) clean
+	[ ! -f example5/Makefile ] || cd example5 && $(MAKE) clean
 
 apidoc :
 	rm -rf api-doc
