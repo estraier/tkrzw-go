@@ -697,6 +697,32 @@ func TestDBMProcess(t *testing.T) {
 	}
 	CheckEq(t, StatusSuccess, dbm.ProcessEach(proc5, true))
 	CheckEq(t, 0, dbm.CountSimple())
+	ops := []KeyProcPair{
+		{"one", func(k []byte, v []byte) interface{} { return "hop" }},
+		{"two", func(k []byte, v []byte) interface{} { return "step" }},
+		{"three", func(k []byte, v []byte) interface{} { return "jump" }},
+	}
+	CheckEq(t, StatusSuccess, dbm.ProcessMulti(ops, true))
+	proc6 := func(k []byte, v []byte) interface{} {
+		if v == nil {
+			return "x"
+		}
+		return ToString(v) + ToString(v)
+	}
+	ops = []KeyProcPair{
+		{"one", func(k []byte, v []byte) interface{} { return RemoveBytes }},
+		{"two", func(k []byte, v []byte) interface{} { return RemoveBytes }},
+		{"three", proc6},
+		{"four", proc6},
+		{"three", proc6},
+		{"four", proc6},
+	}
+	CheckEq(t, StatusSuccess, dbm.ProcessMulti(ops, true))
+	CheckEq(t, 2, dbm.CountSimple())
+	CheckEq(t, "*", dbm.GetStrSimple("one", "*"))
+	CheckEq(t, "*", dbm.GetStrSimple("two", "*"))
+	CheckEq(t, "jumpjumpjumpjump", dbm.GetStrSimple("three", "*"))
+	CheckEq(t, "xx", dbm.GetStrSimple("four", "*"))
 	CheckEq(t, StatusSuccess, dbm.Close())
 }
 

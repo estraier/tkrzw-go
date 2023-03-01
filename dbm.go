@@ -25,6 +25,9 @@ type DBM struct {
 	dbm uintptr
 }
 
+// A function to process a record.
+type RecordProcessor func(key []byte, value []byte) interface{}
+
 // A pair of the key and the value of a record.
 type KeyValuePair struct {
 	// The key.
@@ -41,8 +44,21 @@ type KeyValueStrPair struct {
 	Value string
 }
 
-// A function to process a record.
-type RecordProcessor func(key []byte, value []byte) interface{}
+// A pair of the key and the record processor function.
+type KeyProcPair struct {
+	// The key.
+	Key interface{}
+	// The processor function.
+	Proc RecordProcessor
+}
+
+// A pair of the key bytes and the record processor function.
+type KeyBytesProcPair struct {
+	// The key.
+	Key []byte
+	// The processor function.
+	Proc RecordProcessor
+}
 
 // Makes a new DBM object.
 //
@@ -529,6 +545,23 @@ func (self *DBM) Increment(key interface{}, inc interface{}, init interface{}) (
 		return 0, NewStatus2(StatusPreconditionError, "not opened database")
 	}
 	return dbm_increment(self.dbm, ToByteArray(key), ToInt(inc), ToInt(init))
+}
+
+// Processes multiple records with arbitrary functions.
+//
+// @param keyProcPairs A list of pairs of keys and their functions.  The first parameter is the key bytes of the record.  The second parameter is the value bytes of the existing record, or nil if it the record doesn't exist.  The return value is bytes or a string to update the record value.  If the return value is nil or NilString, the record is not modified.  If the return value is RemoveBytes or RemoveString, the record is removed.
+// @param writable True if the processor can edit the record.
+// @return The result status.
+func (self *DBM) ProcessMulti(keyProcPairs []KeyProcPair, writable bool) *Status {
+	if self.dbm == 0 {
+		return NewStatus2(StatusPreconditionError, "not opened database")
+	}
+	rawPairs := make([]KeyBytesProcPair, 0, len(keyProcPairs))
+	for _, pair := range keyProcPairs {
+		rawPair := KeyBytesProcPair{ToByteArray(pair.Key), pair.Proc}
+		rawPairs = append(rawPairs, rawPair)
+	}
+	return dbm_process_multi(self.dbm, rawPairs, writable)
 }
 
 // Compares the values of records and exchanges if the condition meets.

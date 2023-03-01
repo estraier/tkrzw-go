@@ -368,6 +368,31 @@ RES_INT do_dbm_increment(
   return res;
 }
 
+RES_STATUS do_dbm_process_multi(
+    TkrzwDBM* dbm, TkrzwKeyProcPair* pairs, int32_t num_pairs, bool writable) {
+  RES_STATUS res;
+  for (int i = 0; i < num_pairs; i++) {
+    TkrzwKeyProcPair* pair = pairs + i;
+    void* proc_up = pair->proc_arg;
+    pair->proc = (tkrzw_record_processor)run_record_processor;
+    RecordProcessorArg* proc_arg = malloc(sizeof(RecordProcessorArg));
+    proc_arg->proc_up = proc_up;
+    proc_arg->buffer = NULL;
+    pair->proc_arg = proc_arg;
+  }
+  tkrzw_dbm_process_multi(dbm, pairs, num_pairs, writable);
+  for (int i = 0; i < num_pairs; i++) {
+    TkrzwKeyProcPair* pair = pairs + i;
+    RecordProcessorArg* proc_arg = (RecordProcessorArg*)pair->proc_arg;
+    free(proc_arg->buffer);
+    free(proc_arg);
+  }
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_STATUS do_dbm_compare_exchange_multi(
     TkrzwDBM* dbm, const TkrzwKeyValuePair* expected, int32_t num_expected,
     const TkrzwKeyValuePair* desired, int32_t num_desired) {
@@ -1306,6 +1331,29 @@ func dbm_increment(dbm uintptr, key []byte, inc int64, init int64) (int64, *Stat
 		xdbm, xkey_ptr, C.int32_t(len(key)), C.int64_t(inc), C.int64_t(init))
 	status := convert_status(res.status)
 	return int64(res.num), status
+}
+
+func dbm_process_multi(dbm uintptr, pairs []KeyBytesProcPair, writable bool) *Status {
+	xdbm := (*C.TkrzwDBM)(unsafe.Pointer(dbm))
+	xpairs_size := len(pairs) * int(unsafe.Sizeof(C.TkrzwKeyProcPair{}))
+	xpairs := (*C.TkrzwKeyProcPair)(unsafe.Pointer(C.malloc(C.size_t(xpairs_size + 1))))
+	defer C.free(unsafe.Pointer(xpairs))
+	xpair_ptr := uintptr(unsafe.Pointer(xpairs))
+	for _, pair := range pairs {
+		xpair := (*C.TkrzwKeyProcPair)(unsafe.Pointer(xpair_ptr))
+		xkey_ptr := (*C.char)(C.CBytes(pair.Key))
+		defer C.free(unsafe.Pointer(xkey_ptr))
+		proc_up := registerRecordProcessor(pair.Proc)
+		defer deregisterRecordProcessor(proc_up)
+		xpair.key_ptr = xkey_ptr
+		xpair.key_size = C.int32_t(len(pair.Key))
+		xpair.proc = nil
+		xpair.proc_arg = proc_up
+		xpair_ptr += unsafe.Sizeof(C.TkrzwKeyProcPair{})
+	}
+	res := C.do_dbm_process_multi(xdbm, xpairs, C.int32_t(len(pairs)), C.bool(writable))
+	status := convert_status(res)
+	return status
 }
 
 func dbm_compare_exchange_multi(
