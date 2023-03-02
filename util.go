@@ -367,7 +367,11 @@ type RecordProcessorPool struct {
 	mutex sync.Mutex
 }
 
-var recordProcessorPool = RecordProcessorPool{data: make(map[unsafe.Pointer]RecordProcessor)}
+var recordProcessorPools = []RecordProcessorPool{
+	{data: make(map[unsafe.Pointer]RecordProcessor)},
+	{data: make(map[unsafe.Pointer]RecordProcessor)},
+	{data: make(map[unsafe.Pointer]RecordProcessor)},
+}
 
 // Register a Go function to the storage.
 func registerRecordProcessor(proc RecordProcessor) unsafe.Pointer {
@@ -375,17 +379,19 @@ func registerRecordProcessor(proc RecordProcessor) unsafe.Pointer {
 	if up == nil {
 		panic("memory allocation failed")
 	}
-	recordProcessorPool.mutex.Lock()
-	recordProcessorPool.data[up] = proc
-	recordProcessorPool.mutex.Unlock()
+	procPool := recordProcessorPools[int(uintptr(up)>>3)%len(recordProcessorPools)]
+	procPool.mutex.Lock()
+	procPool.data[up] = proc
+	procPool.mutex.Unlock()
 	return up
 }
 
 // Deregister a Go function from the storage.
 func deregisterRecordProcessor(up unsafe.Pointer) {
-	recordProcessorPool.mutex.Lock()
-	delete(recordProcessorPool.data, up)
-	recordProcessorPool.mutex.Unlock()
+	procPool := recordProcessorPools[int(uintptr(up)>>3)%len(recordProcessorPools)]
+	procPool.mutex.Lock()
+	delete(procPool.data, up)
+	procPool.mutex.Unlock()
 	C.free(up)
 }
 
@@ -393,9 +399,10 @@ func deregisterRecordProcessor(up unsafe.Pointer) {
 //export callRecordProcessor
 func callRecordProcessor(up unsafe.Pointer, keyPtr unsafe.Pointer, keySize C.int32_t,
 	valuePtr unsafe.Pointer, valueSize C.int32_t) (unsafe.Pointer, int32) {
-	recordProcessorPool.mutex.Lock()
-	proc := recordProcessorPool.data[up]
-	recordProcessorPool.mutex.Unlock()
+	procPool := recordProcessorPools[int(uintptr(up)>>3)%len(recordProcessorPools)]
+	procPool.mutex.Lock()
+	proc := procPool.data[up]
+	procPool.mutex.Unlock()
 	var key []byte
 	if keyPtr == nil {
 		key = nil
