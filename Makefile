@@ -2,7 +2,7 @@
 
 PACKAGE := tkrzw-go
 VERSION := 0.1.29
-PACKAGEDIR := $(PACKAGE)-$(VERSION)
+PACKAGEDIR := $(PACKAGE)
 PACKAGETGZ := $(PACKAGE)-$(VERSION).tar.gz
 
 GOCMD := go
@@ -64,10 +64,8 @@ dist :
 	[ ! -f example4/Makefile ] || cd example4 && $(MAKE) fmt
 	[ ! -f example5/Makefile ] || cd example5 && $(MAKE) fmt
 	$(MAKE) distclean
-	rm -Rf "../$(PACKAGEDIR)" "../$(PACKAGETGZ)"
-	cd .. && cp -R tkrzw-go $(PACKAGEDIR) && \
-	  tar --exclude=".*" -cvf - $(PACKAGEDIR) | gzip -c > $(PACKAGETGZ)
-	rm -Rf "../$(PACKAGEDIR)"
+	rm -Rf "../$(PACKAGETGZ)"
+	cd .. && tar --exclude=".*" -cvf - $(PACKAGEDIR) | gzip -c > $(PACKAGETGZ)
 	sync ; sync
 
 distclean : clean apidocclean
