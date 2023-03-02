@@ -1,7 +1,7 @@
 # Makefile for sample programs for Tkrzw
 
 GOCMD := go
-RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
+RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib:$(HOME)/local/lib:$(LD_LIBRARY_PATH)
 
 build :
 	$(RUNENV) $(GOCMD) get

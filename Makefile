@@ -6,7 +6,7 @@ PACKAGEDIR := $(PACKAGE)-$(VERSION)
 PACKAGETGZ := $(PACKAGE)-$(VERSION).tar.gz
 
 GOCMD := go
-RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
+RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib:$(HOME)/local/lib:$(LD_LIBRARY_PATH)
 
 build :
 	$(RUNENV) $(GOCMD) get
