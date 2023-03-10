@@ -1,7 +1,7 @@
 # Makefile for Tkrzw for Go
 
 PACKAGE := tkrzw-go
-VERSION := 0.1.29
+VERSION := 0.1.30
 PACKAGEDIR := $(PACKAGE)
 PACKAGETGZ := $(PACKAGE)-$(VERSION).tar.gz
 

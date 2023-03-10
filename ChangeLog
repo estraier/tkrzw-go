@@ -1,3 +1,10 @@
+2023-03-11  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.30
+
+	- Options to enable encrypted databases are added.
+	- Compatibility to the C++ library: Tkrzw 1.0.27
+
 2021-11-13  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.28

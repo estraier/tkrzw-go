@@ -619,7 +619,7 @@ func TestDBMBasic(t *testing.T) {
 	iter.Destruct()
 	CheckEq(t, StatusSuccess, dbm.Close())
 	os.Remove(copyPath)
-	CheckEq(t, StatusSuccess, RestoreDatabase(filePath, copyPath, "", -1))
+	CheckEq(t, StatusSuccess, RestoreDatabase(filePath, copyPath, "", -1, ""))
 	CheckEq(t, StatusSuccess, copyDBM.Open(copyPath, false, nil))
 	CheckEq(t, 11, copyDBM.CountSimple())
 	CheckEq(t, StatusSuccess, copyDBM.Close())

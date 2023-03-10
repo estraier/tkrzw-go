@@ -573,9 +573,10 @@ RES_STRMAP do_dbm_inspect(TkrzwDBM* dbm) {
 }
 
 RES_STATUS do_dbm_restore_database(const char* old_file_path, const char* new_file_path,
-    const char* class_name, int64_t end_offset) {
+    const char* class_name, int64_t end_offset, const char* cipher_key) {
   RES_STATUS res;
-  bool r = tkrzw_dbm_restore_database(old_file_path, new_file_path, class_name, end_offset);
+  bool r = tkrzw_dbm_restore_database(
+    old_file_path, new_file_path, class_name, end_offset, cipher_key);
   TkrzwStatus status = tkrzw_get_last_status();
   res.code = status.code;
   res.message = copy_status_message(status.message);
@@ -1613,15 +1614,18 @@ func dbm_make_iterator(dbm uintptr) uintptr {
 }
 
 func dbm_restore_database(
-	old_file_path string, new_file_path string, class_name string, end_offset int64) *Status {
+	old_file_path string, new_file_path string, class_name string,
+	end_offset int64, cipher_key string) *Status {
 	xold_file_path := C.CString(old_file_path)
 	defer C.free(unsafe.Pointer(xold_file_path))
 	xnew_file_path := C.CString(new_file_path)
 	defer C.free(unsafe.Pointer(xnew_file_path))
 	xclass_name := C.CString(class_name)
 	defer C.free(unsafe.Pointer(xclass_name))
+	xcipher_key := (*C.char)(C.CString(cipher_key))
+	defer C.free(unsafe.Pointer(xcipher_key))
 	res := C.do_dbm_restore_database(
-		xold_file_path, xnew_file_path, xclass_name, C.int64_t(end_offset))
+		xold_file_path, xnew_file_path, xclass_name, C.int64_t(end_offset), xcipher_key)
 	status := convert_status(res)
 	return status
 }
