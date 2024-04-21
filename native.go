@@ -38,6 +38,11 @@ typedef struct {
 } RES_FILE;
 
 typedef struct {
+  TkrzwIndex* index;
+  RES_STATUS status;
+} RES_INDEX;
+
+typedef struct {
   char* value_ptr;
   int32_t value_size;
   RES_STATUS status;
@@ -87,6 +92,14 @@ typedef struct {
   int32_t value_size;
   RES_STATUS status;
 } RES_REC;
+
+typedef struct {
+  char* key_ptr;
+  int32_t key_size;
+  char* value_ptr;
+  int32_t value_size;
+  bool status;
+} RES_REC_BOOL;
 
 typedef struct {
   void* proc_up;
@@ -799,6 +812,33 @@ RES_STR do_file_get_path(TkrzwFile* file) {
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
   res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_INDEX do_index_open(const char* path, bool writable, const char* params) {
+  RES_INDEX res;
+  res.index = tkrzw_index_open(path, writable, params);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.status.code = status.code;
+  res.status.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_index_close(TkrzwIndex* index) {
+  RES_STATUS res;
+  tkrzw_index_close(index);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_REC_BOOL do_index_iter_get(TkrzwIndexIter* iter) {
+  RES_REC_BOOL res;
+  res.key_ptr = NULL;
+  res.value_ptr = NULL;
+  res.status = tkrzw_index_iter_get(
+    iter, &res.key_ptr, &res.key_size, &res.value_ptr, &res.value_size);
   return res;
 }
 
@@ -2174,6 +2214,149 @@ func file_search(file uintptr, mode string, pattern string, capacity int) []stri
 		line_ptr += unsafe.Sizeof(C.TkrzwStr{})
 	}
 	return lines
+}
+
+func index_open(path string, writable bool, params map[string]string) (uintptr, *Status) {
+	xpath := C.CString(path)
+	defer C.free(unsafe.Pointer(xpath))
+	xparams := C.CString(join_params(params))
+	defer C.free(unsafe.Pointer(xparams))
+	res := C.do_index_open(xpath, C.bool(writable), xparams)
+	status := convert_status(res.status)
+	return uintptr(unsafe.Pointer(res.index)), status
+}
+
+func index_close(index uintptr) *Status {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	res := C.do_index_close(xindex)
+	status := convert_status(res)
+	return status
+}
+
+func index_check(index uintptr, key []byte, value []byte) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	return (bool)(C.tkrzw_index_check(xindex, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value))))
+}
+
+func index_get_values(index uintptr, key []byte, max int) []string {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	var num_values C.int32_t = 0
+	xvalues := C.tkrzw_index_get_values(
+		xindex, xkey_ptr, C.int32_t(len(key)), C.int32_t(max), &num_values)
+	values := make([]string, 0, num_values)
+	value_ptr := uintptr(unsafe.Pointer(xvalues))
+	for i := C.int32_t(0); i < num_values; i++ {
+		xvalue := (*C.TkrzwStr)(unsafe.Pointer(value_ptr))
+		value := C.GoStringN(xvalue.ptr, xvalue.size)
+		values = append(values, value)
+		value_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	return values
+}
+
+func index_add(index uintptr, key []byte, value []byte) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	return (bool)(C.tkrzw_index_add(xindex, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value))))
+}
+
+func index_remove(index uintptr, key []byte, value []byte) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	return (bool)(C.tkrzw_index_remove(xindex, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value))))
+}
+
+func index_count(index uintptr) int64 {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	return (int64)(C.tkrzw_index_count(xindex))
+}
+
+func index_clear(index uintptr) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	return (bool)(C.tkrzw_index_clear(xindex))
+}
+
+func index_rebuild(index uintptr) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	return (bool)(C.tkrzw_index_rebuild(xindex))
+}
+
+func index_synchronize(index uintptr, hard bool) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	return (bool)(C.tkrzw_index_synchronize(xindex, C.bool(hard)))
+}
+
+func index_is_writable(index uintptr) bool {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	return (bool)(C.tkrzw_index_is_writable(xindex))
+}
+
+func index_make_iterator(index uintptr) uintptr {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	return uintptr(unsafe.Pointer(C.tkrzw_index_make_iterator(xindex)))
+}
+
+func index_iter_free(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_free(xiter)
+}
+
+func index_iter_first(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_first(xiter)
+}
+
+func index_iter_last(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_last(xiter)
+}
+
+func index_iter_jump(iter uintptr, key []byte) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	C.tkrzw_index_iter_jump(xiter, xkey_ptr, C.int32_t(len(key)))
+}
+
+func index_iter_get(iter uintptr) ([]byte, []byte, bool) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	res := C.do_index_iter_get(xiter)
+	var key []byte = nil
+	if res.key_ptr != nil {
+		defer C.free(unsafe.Pointer(res.key_ptr))
+		key = C.GoBytes(unsafe.Pointer(res.key_ptr), res.key_size)
+	}
+	var value []byte = nil
+	if res.value_ptr != nil {
+		defer C.free(unsafe.Pointer(res.value_ptr))
+		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
+	}
+	return key, value, bool(res.status)
+}
+
+func index_iter_next(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_next(xiter)
+}
+
+func index_iter_previous(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_previous(xiter)
 }
 
 // END OF FILE
