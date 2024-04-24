@@ -63,6 +63,7 @@ dist :
 	[ ! -f example3/Makefile ] || cd example3 && $(MAKE) fmt
 	[ ! -f example4/Makefile ] || cd example4 && $(MAKE) fmt
 	[ ! -f example5/Makefile ] || cd example5 && $(MAKE) fmt
+	[ ! -f example6/Makefile ] || cd example6 && $(MAKE) fmt
 	$(MAKE) distclean
 	rm -Rf "../$(PACKAGETGZ)"
 	cd .. && tar --exclude=".*" -cvf - $(PACKAGEDIR) | gzip -c > $(PACKAGETGZ)
@@ -76,6 +77,7 @@ distclean : clean apidocclean
 	[ ! -f example3/Makefile ] || cd example3 && $(MAKE) clean
 	[ ! -f example4/Makefile ] || cd example4 && $(MAKE) clean
 	[ ! -f example5/Makefile ] || cd example5 && $(MAKE) clean
+	[ ! -f example6/Makefile ] || cd example6 && $(MAKE) clean
 
 apidoc :
 	rm -rf api-doc
