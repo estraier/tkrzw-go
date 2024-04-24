@@ -184,24 +184,4 @@ func (self *Index) MakeIterator() *IndexIterator {
 	return &IndexIterator{iter}
 }
 
-/**
- * Initializes the iterator to indicate the first record.
- * @param iter The iterator object.
- */
-//void tkrzw_index_iter_first(TkrzwIndexIter* iter);
-
-/**
- * Initializes the iterator to indicate the last record.
- * @param iter The iterator object.
- */
-//void tkrzw_index_iter_last(TkrzwIndexIter* iter);
-
-/**
- * Initializes the iterator to indicate a specific range.
- * @param iter The iterator object.
- * @param key_ptr The key pointer.
- * @param key_size The key size.  If it is negative, strlen(key_ptr) is used.
- */
-//void tkrzw_index_iter_jump(TkrzwIndexIter* iter, const char* key_ptr, int32_t key_size);
-
 // END OF FILE
