@@ -286,6 +286,56 @@ The following code uses Process, ProcessMulti, and ProcessEach methods which tak
    }, true)
    println(dbm.CountSimple())
  }
+
+The following code is an example to use a secondary index, which is useful to organize records by non-primary keys.
+
+ package main
+
+ import (
+   "fmt"
+   "github.com/estraier/tkrzw-go"
+ )
+
+ func main() {
+   // Opens the index.
+   index := tkrzw.NewIndex()
+   index.Open("casket.tkt", true,
+     tkrzw.ParseParams("truncate=true,num_buckets=100"))
+   defer index.Close()
+
+   // Adds records to the index.
+   // The key is a division name and the value is person name.
+   index.Add("general", "anne")
+   index.Add("general", "matthew")
+   index.Add("general", "marilla")
+   index.Add("sales", "gilbert")
+
+   // Anne moves to the sales division.
+   index.Remove("general", "anne")
+   index.Add("sales", "anne")
+
+   // Prints all members for each division.
+   divisions := [] string{"general", "sales"}
+   for _, division := range divisions {
+     fmt.Printf("%s\n", division)
+     members := index.GetValuesStr(division, 0)
+     for _, member := range members {
+       fmt.Printf(" -- %s\n", member)
+     }
+   }
+
+   // Prints every records by iterator.
+   iter := index.MakeIterator()
+   iter.First()
+   for {
+     key, value, ok := iter.GetStr()
+     if !ok {
+       break
+     }
+     fmt.Printf("%s: %s\n", key, value)
+     iter.Next()
+   }
+ }
 */
 package tkrzw
 
