@@ -49,7 +49,7 @@ func (self *Index) String() string {
 // @param params Optional parameters.  If it is nil, it is ignored.
 // @return The result status.
 //
-// If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, and PairRealNumberKeyComparator.  Other options can be specified as with PolyDBM::OpenAdvanced.
+// If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, and PairRealNumberKeyComparator.  Other options can be specified as with DBM::Open.
 func (self *Index) Open(path string, writable bool, params map[string]string) *Status {
 	if self.index != 0 {
 		return NewStatus2(StatusPreconditionError, "opened index")
