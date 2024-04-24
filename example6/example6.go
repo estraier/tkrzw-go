@@ -45,6 +45,18 @@ func main() {
 			fmt.Printf(" -- %s\n", member)
 		}
 	}
+
+	// Prints every records by iterator.
+	iter := index.MakeIterator()
+	iter.First()
+	for {
+		key, value, ok := iter.Get()
+		if !ok {
+			break
+		}
+		fmt.Printf("%s: %s\n", key, value)
+		iter.Next()
+	}
 }
 
 // END OF FILE
