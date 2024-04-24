@@ -40,7 +40,7 @@ func main() {
 	divisions := [] string{"general", "sales"}
 	for _, division := range divisions {
 		fmt.Printf("%s\n", division)
-		members := index.GetValues(division, 0)
+		members := index.GetValuesStr(division, 0)
 		for _, member := range members {
 			fmt.Printf(" -- %s\n", member)
 		}
@@ -50,7 +50,7 @@ func main() {
 	iter := index.MakeIterator()
 	iter.First()
 	for {
-		key, value, ok := iter.Get()
+		key, value, ok := iter.GetStr()
 		if !ok {
 			break
 		}

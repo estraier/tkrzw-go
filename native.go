@@ -2243,7 +2243,25 @@ func index_check(index uintptr, key []byte, value []byte) bool {
 		xvalue_ptr, C.int32_t(len(value))))
 }
 
-func index_get_values(index uintptr, key []byte, max int) []string {
+func index_get_values(index uintptr, key []byte, max int) [][]byte {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	xkey_ptr := (*C.char)(C.CBytes(key))
+	defer C.free(unsafe.Pointer(xkey_ptr))
+	var num_values C.int32_t = 0
+	xvalues := C.tkrzw_index_get_values(
+		xindex, xkey_ptr, C.int32_t(len(key)), C.int32_t(max), &num_values)
+	values := make([][]byte, 0, num_values)
+	value_ptr := uintptr(unsafe.Pointer(xvalues))
+	for i := C.int32_t(0); i < num_values; i++ {
+		xvalue := (*C.TkrzwStr)(unsafe.Pointer(value_ptr))
+		value := C.GoBytes(unsafe.Pointer(xvalue.ptr), xvalue.size)
+		values = append(values, value)
+		value_ptr += unsafe.Sizeof(C.TkrzwStr{})
+	}
+	return values
+}
+
+func index_get_values_str(index uintptr, key []byte, max int) []string {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))

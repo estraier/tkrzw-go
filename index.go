@@ -89,11 +89,22 @@ func (self *Index) Check(key interface{}, value interface{}) bool {
 //
 // @param key The key of the record.
 // @param max The maximum number of values to get.  0 means unlimited.
-func (self *Index) GetValues(key interface{}, max int) []string {
+func (self *Index) GetValues(key interface{}, max int) [][]byte {
+	if self.index == 0 {
+		return make([][]byte, 0)
+	}
+	return index_get_values(self.index, ToByteArray(key), max)
+}
+
+// Gets all values of records of a key, as strings.
+//
+// @param key The key of the record.
+// @param max The maximum number of values to get.  0 means unlimited.
+func (self *Index) GetValuesStr(key interface{}, max int) []string {
 	if self.index == 0 {
 		return make([]string, 0)
 	}
-	return index_get_values(self.index, ToByteArray(key), max)
+	return index_get_values_str(self.index, ToByteArray(key), max)
 }
 
 // Adds a record.
