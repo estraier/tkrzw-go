@@ -62,12 +62,13 @@ func (self *IndexIterator) Last() {
 
 // Initializes the iterator to indicate a specific range.
 //
-// @param key The key of the record to look for.
-func (self *IndexIterator) Jump(key interface{}) {
+// @param key The key of the lower bound.
+// @param value The value of the lower bound.
+func (self *IndexIterator) Jump(key interface{}, value interface{}) {
 	if self.iter == 0 {
 		return
 	}
-	index_iter_jump(self.iter, ToByteArray(key))
+	index_iter_jump(self.iter, ToByteArray(key), ToByteArray(value))
 }
 
 // Gets the key and the value of the current record of the iterator.

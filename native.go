@@ -2403,11 +2403,14 @@ func index_iter_last(iter uintptr) {
 	C.tkrzw_index_iter_last(xiter)
 }
 
-func index_iter_jump(iter uintptr, key []byte) {
+func index_iter_jump(iter uintptr, key []byte, value []byte) {
 	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
-	C.tkrzw_index_iter_jump(xiter, xkey_ptr, C.int32_t(len(key)))
+	xvalue_ptr := (*C.char)(C.CBytes(value))
+	defer C.free(unsafe.Pointer(xvalue_ptr))
+	C.tkrzw_index_iter_jump(xiter, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)))
 }
 
 func index_iter_get(iter uintptr) ([]byte, []byte, bool) {

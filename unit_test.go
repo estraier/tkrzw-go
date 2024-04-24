@@ -1246,7 +1246,7 @@ func TestIndex(t *testing.T) {
 	iter.Previous()
 	key, value, rv = iter.Get()
 	CheckFalse(t, rv)
-	iter.Jump("second")
+	iter.Jump("second", "")
 	key, value, rv = iter.Get()
 	CheckEq(t, "second", key)
 	CheckEq(t, "2", value)
