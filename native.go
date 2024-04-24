@@ -833,6 +833,55 @@ RES_STATUS do_index_close(TkrzwIndex* index) {
   return res;
 }
 
+RES_STATUS do_index_add(
+    TkrzwIndex* index, const char* key_ptr, int32_t key_size,
+    const char* value_ptr, int32_t value_size) {
+  RES_STATUS res;
+  tkrzw_index_add(index, key_ptr, key_size, value_ptr, value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_index_remove(
+    TkrzwIndex* index, const char* key_ptr, int32_t key_size,
+    const char* value_ptr, int32_t value_size) {
+  RES_STATUS res;
+  tkrzw_index_remove(index, key_ptr, key_size, value_ptr, value_size);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_index_clear(TkrzwIndex* index) {
+  RES_STATUS res;
+  tkrzw_index_clear(index);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_index_rebuild(TkrzwIndex* index) {
+  RES_STATUS res;
+  tkrzw_index_rebuild(index);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
+RES_STATUS do_index_synchronize(TkrzwIndex* index, bool hard) {
+  RES_STATUS res;
+  tkrzw_index_synchronize(index, hard);
+  TkrzwStatus status = tkrzw_get_last_status();
+  res.code = status.code;
+  res.message = copy_status_message(status.message);
+  return res;
+}
+
 RES_REC_BOOL do_index_iter_get(TkrzwIndexIter* iter) {
   RES_REC_BOOL res;
   res.key_ptr = NULL;
@@ -2279,24 +2328,28 @@ func index_get_values_str(index uintptr, key []byte, max int) []string {
 	return values
 }
 
-func index_add(index uintptr, key []byte, value []byte) bool {
+func index_add(index uintptr, key []byte, value []byte) *Status {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
 	xvalue_ptr := (*C.char)(C.CBytes(value))
 	defer C.free(unsafe.Pointer(xvalue_ptr))
-	return (bool)(C.tkrzw_index_add(xindex, xkey_ptr, C.int32_t(len(key)),
-		xvalue_ptr, C.int32_t(len(value))))
+	res := C.do_index_add(xindex, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)))
+	status := convert_status(res)
+	return status
 }
 
-func index_remove(index uintptr, key []byte, value []byte) bool {
+func index_remove(index uintptr, key []byte, value []byte) *Status {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
 	xkey_ptr := (*C.char)(C.CBytes(key))
 	defer C.free(unsafe.Pointer(xkey_ptr))
 	xvalue_ptr := (*C.char)(C.CBytes(value))
 	defer C.free(unsafe.Pointer(xvalue_ptr))
-	return (bool)(C.tkrzw_index_remove(xindex, xkey_ptr, C.int32_t(len(key)),
-		xvalue_ptr, C.int32_t(len(value))))
+	res := C.do_index_remove(xindex, xkey_ptr, C.int32_t(len(key)),
+		xvalue_ptr, C.int32_t(len(value)))
+	status := convert_status(res)
+	return status
 }
 
 func index_count(index uintptr) int64 {
@@ -2304,19 +2357,25 @@ func index_count(index uintptr) int64 {
 	return (int64)(C.tkrzw_index_count(xindex))
 }
 
-func index_clear(index uintptr) bool {
+func index_clear(index uintptr) *Status {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
-	return (bool)(C.tkrzw_index_clear(xindex))
+	res := C.do_index_clear(xindex)
+	status := convert_status(res)
+	return status
 }
 
-func index_rebuild(index uintptr) bool {
+func index_rebuild(index uintptr) *Status {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
-	return (bool)(C.tkrzw_index_rebuild(xindex))
+	res := C.do_index_rebuild(xindex)
+	status := convert_status(res)
+	return status
 }
 
-func index_synchronize(index uintptr, hard bool) bool {
+func index_synchronize(index uintptr, hard bool) *Status {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
-	return (bool)(C.tkrzw_index_synchronize(xindex, C.bool(hard)))
+	res := C.do_index_synchronize(xindex, C.bool(hard))
+	status := convert_status(res)
+	return status
 }
 
 func index_is_writable(index uintptr) bool {

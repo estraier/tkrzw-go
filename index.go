@@ -111,10 +111,10 @@ func (self *Index) GetValuesStr(key interface{}, max int) []string {
 //
 // @param key The key of the record.  This can be an arbitrary expression to search the index.
 // @param value The value of the record.  This should be a primary value of another database.
-// @return True on success or false on failure.
-func (self *Index) Add(key interface{}, value interface{}) bool {
+// @return The result status.
+func (self *Index) Add(key interface{}, value interface{}) *Status {
 	if self.index == 0 {
-		return false
+		return NewStatus2(StatusPreconditionError, "not opened index")
 	}
 	return index_add(self.index, ToByteArray(key), ToByteArray(value))
 }
@@ -123,10 +123,10 @@ func (self *Index) Add(key interface{}, value interface{}) bool {
 //
 // @param key The key of the record.  This can be an arbitrary expression to search the index.
 // @param value The value of the record.  This should be a primary value of another database.
-// @return True on success or false on failure.
-func (self *Index) Remove(key interface{}, value interface{}) bool {
+// @return The result status.
+func (self *Index) Remove(key interface{}, value interface{}) *Status {
 	if self.index == 0 {
-		return false
+		return NewStatus2(StatusPreconditionError, "not opened index")
 	}
 	return index_remove(self.index, ToByteArray(key), ToByteArray(value))
 }
@@ -143,20 +143,20 @@ func (self *Index) Count() int64 {
 
 // Removes all records.
 //
-// @return True on success or false on failure.
-func (self *Index) Clear() bool {
+// @return The result status.
+func (self *Index) Clear() *Status {
 	if self.index == 0 {
-		return false
+		return NewStatus2(StatusPreconditionError, "not opened index")
 	}
 	return index_clear(self.index)
 }
 
 // Rebuilds the entire database.
 //
-// @return True on success or false on failure.
-func (self *Index) Rebuild() bool {
+// @return The result status.
+func (self *Index) Rebuild() *Status {
 	if self.index == 0 {
-		return false
+		return NewStatus2(StatusPreconditionError, "not opened index")
 	}
 	return index_rebuild(self.index)
 }
@@ -164,10 +164,10 @@ func (self *Index) Rebuild() bool {
 // Synchronizes the content of the database to the file system.
 //
 // @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
-// @return True on success or false on failure.
-func (self *Index) Synchronize(hard bool) bool {
+// @return The result status.
+func (self *Index) Synchronize(hard bool) *Status {
 	if self.index == 0 {
-		return false
+		return NewStatus2(StatusPreconditionError, "not opened index")
 	}
 	return index_synchronize(self.index, hard)
 }
