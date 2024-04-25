@@ -19,7 +19,7 @@ import (
 
 // Secondary index.
 //
-// All operations except for "Open" and "Close" are thread-safe; Multiple threads can access the same database concurrently.  You can specify a data structure when you call the "Open" method.  Every opened database must be closed explicitly by the "Close" method to avoid data corruption.
+// All operations except for "Open" and "Close" are thread-safe; Multiple threads can access the same index concurrently.  You can specify a data structure when you call the "Open" method.  Every opened index must be closed explicitly by the "Close" method to avoid data corruption.
 type Index struct {
 	// Pointer to the internal object.
 	index uintptr
@@ -27,7 +27,7 @@ type Index struct {
 
 // Makes a new Index object.
 //
-// @return The pointer to the created database object.
+// @return The pointer to the created index object.
 func NewIndex() *Index {
 	return &Index{0}
 }
@@ -151,7 +151,7 @@ func (self *Index) Clear() *Status {
 	return index_clear(self.index)
 }
 
-// Rebuilds the entire database.
+// Rebuilds the entire index.
 //
 // @return The result status.
 func (self *Index) Rebuild() *Status {
@@ -161,7 +161,7 @@ func (self *Index) Rebuild() *Status {
 	return index_rebuild(self.index)
 }
 
-// Synchronizes the content of the database to the file system.
+// Synchronizes the content of the index to the file system.
 //
 // @param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
 // @return The result status.
@@ -172,9 +172,9 @@ func (self *Index) Synchronize(hard bool) *Status {
 	return index_synchronize(self.index, hard)
 }
 
-// Checks whether the database is writable.
+// Checks whether the index is writable.
 //
-// @return True if the database is writable, or false if not.
+// @return True if the index is writable, or false if not.
 func (self *Index) IsWritable() bool {
 	if self.index == 0 {
 		return false
