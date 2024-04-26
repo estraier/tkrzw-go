@@ -39,7 +39,9 @@ func (self *Index) String() string {
 	if self.index == 0 {
 		return fmt.Sprintf("#<tkrzw.Index:%p:unopened>", &self)
 	}
-	return fmt.Sprintf("#<tkrzw.DBM:%p:opened>", &self)
+	path := index_get_file_path(self.index)
+	count := index_count(self.index)
+	return fmt.Sprintf("#<tkrzw.Index:%s:%d>", path, count)
 }
 
 // Opens an index file.
@@ -133,12 +135,22 @@ func (self *Index) Remove(key interface{}, value interface{}) *Status {
 
 // Gets the number of records.
 //
-// @return The number of records.
+// @return The number of records, or -1 on failure.
 func (self *Index) Count() int64 {
 	if self.index == 0 {
 		return 0
 	}
 	return index_count(self.index)
+}
+
+// Gets the path of the index file.
+//
+// @return The path of the index file, or an empty string on failure.
+func (self *Index) GetFilePath() string {
+	if self.index == 0 {
+		return ""
+	}
+	return index_get_file_path(self.index)
 }
 
 // Removes all records.

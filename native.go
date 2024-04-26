@@ -2357,6 +2357,13 @@ func index_count(index uintptr) int64 {
 	return (int64)(C.tkrzw_index_count(xindex))
 }
 
+func index_get_file_path(index uintptr) string {
+	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
+	xpath := C.tkrzw_index_get_file_path(xindex)
+	defer C.free(unsafe.Pointer(xpath))
+	return C.GoString(xpath)
+}
+
 func index_clear(index uintptr) *Status {
 	xindex := (*C.TkrzwIndex)(unsafe.Pointer(index))
 	res := C.do_index_clear(xindex)
