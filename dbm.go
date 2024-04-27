@@ -25,7 +25,7 @@ type DBM struct {
 	dbm uintptr
 }
 
-// A function to process a record.
+// Function to process a record.
 type RecordProcessor func(key []byte, value []byte) interface{}
 
 // A pair of the key and the value of a record.

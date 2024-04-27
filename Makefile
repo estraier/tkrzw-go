@@ -98,6 +98,7 @@ apidoc :
 	    -e 's/\/pkg\/builtin\/#/#/' \
 	    -e 's/^\(@param\) \+\([a-zA-Z0-9_]\+\) \+\(.*\)/<div class="param"><span class="tag">\1<\/span> <span class="name">\2<\/span> \3<\/div>/' \
 	    -e 's/^\(@return\) \+\(.*\)/<div class="param"><span class="tag">\1<\/span> \2<\/div>/' \
+	    -e 's/^- tkrzw\.\([a-zA-Z0-9]*\) \+\(.*\)/<div class="list"><a href="#\1">tkrzw.\1<\/a> \2<\/div>/' \
 	    -e 's/^- \(.*\)/<div class="list">\1<\/div>/' > api-doc/index.html
 	killall godoc
 

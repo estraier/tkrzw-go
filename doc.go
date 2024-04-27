@@ -22,6 +22,17 @@ All identifiers are defined under the package "tkrzw", which can be imported in 
 
  import "github.com/estraier/tkrzw-go"
 
+The following types are mainly used.
+
+- tkrzw.Status : Status of operations
+- tkrzw.DBM : Polymorphic database manager
+- tkrzw.Iterator : Iterator for each record
+- tkrzw.Future : Future containing a status object and extra data
+- tkrzw.AsyncDBM : Asynchronous database manager adapter
+- tkrzw.File : Generic file implementation
+- tkrzw.Index : Secondary index
+- tkrzw.IndexIterator : Iterator for each record of the secondary index
+
 An instance of the struct "DBM" is used in order to handle a database.  You can store, delete, and retrieve records with the instance.  The result status of each operation is represented by an object of the struct "Status".  Iterator to access each record is implemented by the struct "Iterator".
 
 The key and the value of the records are stored as byte arrays.  However, you can specify strings and other types which imlements the Stringer interface whereby the object is converted into a byte array.
