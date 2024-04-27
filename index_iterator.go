@@ -39,9 +39,13 @@ func (self *IndexIterator) Destruct() {
 // @return The string representing the iterator.
 func (self *IndexIterator) String() string {
 	if self.iter == 0 {
-		return fmt.Sprintf("#<tkrzw.Iterator:%p:destructed>", &self)
+		return fmt.Sprintf("#<tkrzw.IndexIterator:%p:destructed>", &self)
 	}
-	return fmt.Sprintf("#<tkrzw.Iterator:%p>", &self)
+	key, ok := index_iter_get_key_esc(self.iter)
+	if ok {
+		return fmt.Sprintf("#<tkrzw.IndexIterator:key=%s>", key)
+	}
+	return fmt.Sprintf("#<tkrzw.IndexIterator:%p:unlocated>", &self)
 }
 
 // Initializes the iterator to indicate the first record.

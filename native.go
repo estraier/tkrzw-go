@@ -669,6 +669,7 @@ RES_STR do_dbm_iter_get_key_esc(TkrzwDBMIter* iter) {
     res.str = NULL;
   } else {
     res.str = tkrzw_str_escape_c(key_ptr, key_size, true, NULL);
+    free(key_ptr);
   }
   TkrzwStatus status = tkrzw_get_last_status();
   res.status.code = status.code;
@@ -889,6 +890,18 @@ RES_REC_BOOL do_index_iter_get(TkrzwIndexIter* iter) {
   res.status = tkrzw_index_iter_get(
     iter, &res.key_ptr, &res.key_size, &res.value_ptr, &res.value_size);
   return res;
+}
+
+char* do_index_iter_get_key_esc(TkrzwIndexIter* iter) {
+  char* key_ptr = NULL;
+  int32_t key_size = 0;
+  const bool ok = tkrzw_index_iter_get(iter, &key_ptr, &key_size, NULL, NULL);
+  if (!ok) {
+    return NULL;
+  }
+  char* esc_key = tkrzw_str_escape_c(key_ptr, key_size, true, NULL);
+  free(key_ptr);
+  return esc_key;
 }
 
 */
@@ -2434,6 +2447,18 @@ func index_iter_get(iter uintptr) ([]byte, []byte, bool) {
 		value = C.GoBytes(unsafe.Pointer(res.value_ptr), res.value_size)
 	}
 	return key, value, bool(res.status)
+}
+
+func index_iter_get_key_esc(iter uintptr) (string, bool) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	xkey := C.do_index_iter_get_key_esc(xiter)
+	if xkey == nil {
+		return "", false
+	}
+	var key string
+	defer C.free(unsafe.Pointer(xkey))
+	key = C.GoString(xkey)
+	return key, true
 }
 
 func index_iter_next(iter uintptr) {

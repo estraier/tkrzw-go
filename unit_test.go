@@ -1215,6 +1215,7 @@ func TestIndex(t *testing.T) {
 	iter := index.MakeIterator()
 	CheckTrue(t, len(iter.String()) > 0)
 	iter.First()
+	CheckTrue(t, len(iter.String()) > 0)
 	key, value, rv := iter.Get()
 	CheckTrue(t, rv)
 	CheckEq(t, "first", key)
