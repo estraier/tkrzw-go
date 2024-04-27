@@ -46,7 +46,7 @@ func main() {
 		}
 	}
 
-	// Prints every records by iterator.
+	// Prints every record by iterator.
 	iter := index.MakeIterator()
 	iter.First()
 	for {
