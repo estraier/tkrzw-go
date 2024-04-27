@@ -184,6 +184,16 @@ func (self *Index) Synchronize(hard bool) *Status {
 	return index_synchronize(self.index, hard)
 }
 
+// Checks whether the index is open.
+//
+// @return True if the index is open, or false if not.
+func (self *Index) IsOpen() bool {
+	if self.index == 0 {
+		return false
+	}
+	return true
+}
+
 // Checks whether the index is writable.
 //
 // @return True if the index is writable, or false if not.

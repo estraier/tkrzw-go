@@ -1207,6 +1207,7 @@ func TestIndex(t *testing.T) {
 	CheckEq(t, 3, index.Count())
 	CheckTrue(t, index.Clear().IsOK())
 	CheckEq(t, 0, index.Count())
+	CheckTrue(t, index.IsOpen())
 	CheckTrue(t, index.IsWritable())
 	CheckTrue(t, index.Add("first", "1").IsOK())
 	CheckTrue(t, index.Add("second", "2").IsOK())
