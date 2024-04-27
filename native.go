@@ -2433,6 +2433,16 @@ func index_iter_jump(iter uintptr, key []byte, value []byte) {
 		xvalue_ptr, C.int32_t(len(value)))
 }
 
+func index_iter_next(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_next(xiter)
+}
+
+func index_iter_previous(iter uintptr) {
+	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
+	C.tkrzw_index_iter_previous(xiter)
+}
+
 func index_iter_get(iter uintptr) ([]byte, []byte, bool) {
 	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
 	res := C.do_index_iter_get(xiter)
@@ -2459,16 +2469,6 @@ func index_iter_get_key_esc(iter uintptr) (string, bool) {
 	defer C.free(unsafe.Pointer(xkey))
 	key = C.GoString(xkey)
 	return key, true
-}
-
-func index_iter_next(iter uintptr) {
-	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
-	C.tkrzw_index_iter_next(xiter)
-}
-
-func index_iter_previous(iter uintptr) {
-	xiter := (*C.TkrzwIndexIter)(unsafe.Pointer(iter))
-	C.tkrzw_index_iter_previous(xiter)
 }
 
 // END OF FILE
