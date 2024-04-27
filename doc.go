@@ -300,19 +300,19 @@ The following code is an example to use a secondary index, which is useful to or
    // Opens the index.
    index := tkrzw.NewIndex()
    index.Open("casket.tkt", true,
-     tkrzw.ParseParams("truncate=true,num_buckets=100"))
-   defer index.Close()
+     tkrzw.ParseParams("truncate=true,num_buckets=100")).OrDie()
+   defer func() { index.Close().OrDie() }()
 
    // Adds records to the index.
    // The key is a division name and the value is person name.
-   index.Add("general", "anne")
-   index.Add("general", "matthew")
-   index.Add("general", "marilla")
-   index.Add("sales", "gilbert")
+   index.Add("general", "anne").OrDie()
+   index.Add("general", "matthew").OrDie()
+   index.Add("general", "marilla").OrDie()
+   index.Add("sales", "gilbert").OrDie()
 
    // Anne moves to the sales division.
-   index.Remove("general", "anne")
-   index.Add("sales", "anne")
+   index.Remove("general", "anne").OrDie()
+   index.Add("sales", "anne").OrDie()
 
    // Prints all members for each division.
    divisions := [] string{"general", "sales"}
