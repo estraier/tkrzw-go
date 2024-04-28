@@ -625,6 +625,7 @@ func TestDBMBasic(t *testing.T) {
 	CheckEq(t, StatusSuccess, copyDBM.Close())
 	CheckEq(t, StatusSuccess, dbm.Open(filePath, false, nil))
 	CheckEq(t, StatusSuccess, dbm.Close())
+	dbm.Destruct()
 }
 
 func TestDBMProcess(t *testing.T) {
@@ -1166,6 +1167,7 @@ func TestFile(t *testing.T) {
 	CheckEq(t, 1, len(file.Search("contain", "100", 0)))
 	CheckEq(t, 3, len(file.Search("end", "0", 3)))
 	CheckEq(t, StatusSuccess, file.Close())
+	file.Destruct()
 }
 
 func TestIndex(t *testing.T) {
@@ -1256,6 +1258,7 @@ func TestIndex(t *testing.T) {
 	CheckEq(t, "22", strValue)
 	iter.Destruct()
 	CheckEq(t, StatusSuccess, index.Close())
+	index.Destruct()
 }
 
 // END OF FILE

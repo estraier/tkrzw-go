@@ -32,6 +32,17 @@ func NewFile() *File {
 	return &File{0}
 }
 
+// Releases the resource explicitly.
+//
+// The file is closed implicitly if it has not been closed.  As long as you close the file explicitly, you don't have to call this method.
+func (self *File) Destruct() {
+	if self.file == 0 {
+		return
+	}
+	file_close(self.file)
+	self.file = 0
+}
+
 // Makes a string representing the file.
 //
 // @return The string representing the file.

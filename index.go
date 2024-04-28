@@ -32,6 +32,17 @@ func NewIndex() *Index {
 	return &Index{0}
 }
 
+// Releases the resource explicitly.
+//
+// The index is closed implicitly if it has not been closed.  As long as you close the index explicitly, you don't have to call this method.
+func (self *Index) Destruct() {
+	if self.index == 0 {
+		return
+	}
+	index_close(self.index)
+	self.index = 0
+}
+
 // Makes a string representing the index.
 //
 // @return The string representing the index.

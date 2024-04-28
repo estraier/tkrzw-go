@@ -67,6 +67,17 @@ func NewDBM() *DBM {
 	return &DBM{0}
 }
 
+// Releases the resource explicitly.
+//
+// The database is closed implicitly if it has not been closed.  As long as you close the database explicitly, you don't have to call this method.
+func (self *DBM) Destruct() {
+	if self.dbm == 0 {
+		return
+	}
+	dbm_iter_free(self.dbm)
+	self.dbm = 0
+}
+
 // Makes a string representing the database.
 //
 // @return The string representing the database.
