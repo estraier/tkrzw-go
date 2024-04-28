@@ -48,6 +48,7 @@ func main() {
 
 	// Prints every record by iterator.
 	iter := index.MakeIterator()
+	defer iter.Destruct()
 	iter.First()
 	for {
 		key, value, ok := iter.GetStr()

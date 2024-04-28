@@ -337,6 +337,7 @@ The following code is an example to use a secondary index, which is useful to or
 
    // Prints every record by iterator.
    iter := index.MakeIterator()
+   defer iter.Destruct()
    iter.First()
    for {
      key, value, ok := iter.GetStr()
