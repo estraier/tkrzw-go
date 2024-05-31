@@ -303,6 +303,11 @@ func TestMiscUtils(t *testing.T) {
 	CheckEq(t, 1, EditDistanceLev("ac", "abc", true))
 	CheckEq(t, 1, EditDistanceLev("あいう", "あう", true))
 	CheckEq(t, 3, EditDistanceLev("あいう", "あう", false))
+	seqNums := []int64{-123, 0, 123, 2047, 19780211}
+	for _, num := range seqNums {
+		CheckEq(t, num, deserialize_int(serialize_int(num)))
+		CheckEq(t, num, deserialize_float(serialize_float(float64(num))))
+	}
 	params := ParseParams("a=A, bb = BBB, ccc=")
 	CheckEq(t, 3, len(params))
 	CheckEq(t, "A", params["a"])

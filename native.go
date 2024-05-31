@@ -136,6 +136,14 @@ void free_str_pairs(TkrzwKeyValuePair* array, int32_t size) {
   free(array);
 }
 
+double str_to_double_be(const void* ptr, size_t size) {
+  return (double)tkrzw_str_to_float_be(ptr, size);
+}
+
+char* double_to_str_be(double data, size_t size) {
+  return tkrzw_float_to_str_be((double)data, size);
+}
+
 const char* run_record_processor(
   RecordProcessorArg* arg, const char* key_ptr, int32_t key_size,
   const char* value_ptr, int32_t value_size, int32_t* ret_size) {
@@ -961,6 +969,30 @@ func edit_distance_lev(a string, b string, utf bool) int {
 	xb := C.CString(b)
 	defer C.free(unsafe.Pointer(xb))
 	return int(C.tkrzw_str_edit_distance_lev(xa, xb, C.bool(utf)))
+}
+
+func serialize_int(num int64) []byte {
+	xdata := (*C.char)(C.tkrzw_int_to_str_be(C.uint64_t(num), C.size_t(unsafe.Sizeof(num))))
+	defer C.free(unsafe.Pointer(xdata))
+	return C.GoBytes(unsafe.Pointer(xdata), C.int32_t(unsafe.Sizeof(num)))
+}
+
+func deserialize_int(data []byte) int64 {
+	xdata_ptr := (*C.char)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(xdata_ptr))
+	return int64(C.tkrzw_str_to_int_be(unsafe.Pointer(xdata_ptr), C.size_t(len(data))))
+}
+
+func serialize_float(num float64) []byte {
+	xdata := (*C.char)(C.double_to_str_be(C.double(num), C.size_t(unsafe.Sizeof(num))))
+	defer C.free(unsafe.Pointer(xdata))
+	return C.GoBytes(unsafe.Pointer(xdata), C.int32_t(unsafe.Sizeof(num)))
+}
+
+func deserialize_float(data []byte) float64 {
+	xdata_ptr := (*C.char)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(xdata_ptr))
+	return float64(C.str_to_double_be(unsafe.Pointer(xdata_ptr), C.size_t(len(data))))
 }
 
 func convert_status(res C.RES_STATUS) *Status {
