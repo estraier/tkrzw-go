@@ -1,4 +1,4 @@
-module example4
+module example3
 
 go 1.14
 
