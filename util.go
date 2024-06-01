@@ -340,6 +340,38 @@ func EditDistanceLev(a string, b string, utf bool) int {
 	return edit_distance_lev(a, b, utf)
 }
 
+// Serializes an integer into a big-endian binary sequence.
+//
+// @param num an integer.
+// @return The result binary sequence.
+func SerializeInt(num int64) []byte {
+	return serialize_int(num)
+}
+
+// Deserializes a big-endian binary sequence into an integer.
+//
+// @param data a binary sequence.
+// @return The result integer.
+func DeserializeInt(data []byte) int64 {
+	return deserialize_int(data)
+}
+
+// Serializes a floating-point number into a big-endian binary sequence.
+//
+// @param num a floating-point number.
+// @return The result binary sequence.
+func SerializeFloat(num float64) []byte {
+	return serialize_float(num)
+}
+
+// Deserializes a big-endian binary sequence into a floating-point number.
+//
+// @param data a binary sequence.
+// @return The result floating-point number.
+func DeserializeFloat(data []byte) float64 {
+	return deserialize_float(data)
+}
+
 // Parses a parameter string to make a parameter string map.
 //
 // @param expr A parameter string in "name=value,name=value,..." format.

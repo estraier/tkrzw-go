@@ -39,9 +39,13 @@ func (self *IndexIterator) Destruct() {
 // @return The string representing the iterator.
 func (self *IndexIterator) String() string {
 	if self.iter == 0 {
-		return fmt.Sprintf("#<tkrzw.Iterator:%p:destructed>", &self)
+		return fmt.Sprintf("#<tkrzw.IndexIterator:%p:destructed>", &self)
 	}
-	return fmt.Sprintf("#<tkrzw.Iterator:%p>", &self)
+	key, ok := index_iter_get_key_esc(self.iter)
+	if ok {
+		return fmt.Sprintf("#<tkrzw.IndexIterator:key=%s>", key)
+	}
+	return fmt.Sprintf("#<tkrzw.IndexIterator:%p:unlocated>", &self)
 }
 
 // Initializes the iterator to indicate the first record.
@@ -71,6 +75,22 @@ func (self *IndexIterator) Jump(key interface{}, value interface{}) {
 	index_iter_jump(self.iter, ToByteArray(key), ToByteArray(value))
 }
 
+// Moves the iterator to the next record.
+func (self *IndexIterator) Next() {
+	if self.iter == 0 {
+		return
+	}
+	index_iter_next(self.iter)
+}
+
+// Moves the iterator to the previous record.
+func (self *IndexIterator) Previous() {
+	if self.iter == 0 {
+		return
+	}
+	index_iter_previous(self.iter)
+}
+
 // Gets the key and the value of the current record of the iterator.
 //
 // @return The key and the value of the current record, and a boolean status.
@@ -93,22 +113,6 @@ func (self *IndexIterator) GetStr() (string, string, bool) {
 		return string(key), string(value), true
 	}
 	return "", "", false
-}
-
-// Moves the iterator to the next record.
-func (self *IndexIterator) Next() {
-	if self.iter == 0 {
-		return
-	}
-	index_iter_next(self.iter)
-}
-
-// Moves the iterator to the previous record.
-func (self *IndexIterator) Previous() {
-	if self.iter == 0 {
-		return
-	}
-	index_iter_previous(self.iter)
 }
 
 // END OF FILE

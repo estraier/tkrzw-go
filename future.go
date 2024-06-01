@@ -20,7 +20,6 @@ import (
 // Future containing a status object and extra data.
 //
 // Future objects are made by methods of AsyncDBM.  Every future object should be destroyed by the "Destruct" method or the "Get" method family to free resources.
-
 type Future struct {
 	// Pointer to the internal object.
 	future uintptr

@@ -22,6 +22,17 @@ All identifiers are defined under the package "tkrzw", which can be imported in 
 
  import "github.com/estraier/tkrzw-go"
 
+The following types are mainly used.
+
+- tkrzw.Status : Status of operations
+- tkrzw.DBM : Polymorphic database manager
+- tkrzw.Iterator : Iterator for each record
+- tkrzw.Future : Future containing a status object and extra data
+- tkrzw.AsyncDBM : Asynchronous database manager adapter
+- tkrzw.File : Generic file implementation
+- tkrzw.Index : Secondary index
+- tkrzw.IndexIterator : Iterator for each record of the secondary index
+
 An instance of the struct "DBM" is used in order to handle a database.  You can store, delete, and retrieve records with the instance.  The result status of each operation is represented by an object of the struct "Status".  Iterator to access each record is implemented by the struct "Iterator".
 
 The key and the value of the records are stored as byte arrays.  However, you can specify strings and other types which imlements the Stringer interface whereby the object is converted into a byte array.
@@ -143,6 +154,144 @@ The following code is an advanced example where a so-called long transaction is 
      fmt.Println(key, value)
      iter.Next()
    }
+ }
+
+The following code is examples to use a tree database which handles numeric keys with various key comparators. For integers, there are two ways: 1) to use the default comparator and serialize integer keys into byte sequences, or 2) to use the decimal integer comparator and represent keys as decimal integers like "123". For real numbers, there are also two ways: 1) to use the decimal real number comparator and represents keys as decimal real numbers like "123.45", or 2) to use the big-endian floating-point numbers comparator and serialize floating-point numbers into byte sequences.
+
+ package main
+
+ import (
+   "fmt"
+   "github.com/estraier/tkrzw-go"
+ )
+
+ func main() {
+   // Opens a new database with the default key comparator (LexicalKeyComparator).
+   dbm := tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, tkrzw.ParseParams("truncate=true")).OrDie()
+
+   // Sets records with the key being a big-endian binary of an integer.
+   // e.g: "\x00\x00\x00\x00\x00\x00\x00\x31" -> "hop"
+   dbm.Set(tkrzw.SerializeInt(1), "hop", true).OrDie()
+   dbm.Set(tkrzw.SerializeInt(256), "step", true).OrDie()
+   dbm.Set(tkrzw.SerializeInt(32), "jump", true).OrDie()
+
+   // Gets records with the key being a decimal string of an integer.
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeInt(1), ""))
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeInt(256), ""))
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeInt(32), ""))
+
+   // Lists up all records, restoring keys into integers.
+   iter := dbm.MakeIterator()
+   iter.First()
+   for {
+     key, value, status := iter.Get()
+     if !status.IsOK() {
+       break
+     }
+     fmt.Printf("%d: %s\n", tkrzw.DeserializeInt(key), value)
+     iter.Next()
+   }
+   iter.Destruct()
+
+   // Closes the database.
+   dbm.Close().OrDie()
+
+   // Opens a new database with the decimal integer comparator.
+   dbm = tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, tkrzw.ParseParams(
+     "truncate=true,key_comparator=Decimal")).OrDie()
+
+   // Sets records with the key being a decimal string of an integer.
+   // e.g: "1" -> "hop"
+   dbm.Set("1", "hop", true).OrDie()
+   dbm.Set("256", "step", true).OrDie()
+   dbm.Set("32", "jump", true).OrDie()
+
+   // Gets records with the key being a decimal string of an integer.
+   fmt.Println(dbm.GetStrSimple("1", ""))
+   fmt.Println(dbm.GetStrSimple("256", ""))
+   fmt.Println(dbm.GetStrSimple("32", ""))
+
+   // Lists up all records, restoring keys into integers.
+   iter = dbm.MakeIterator()
+   iter.First()
+   for {
+     key, value, status := iter.Get()
+     if !status.IsOK() {
+       break
+     }
+     fmt.Printf("%d: %s\n", tkrzw.ToInt(key), value)
+     iter.Next()
+   }
+   iter.Destruct()
+
+   // Closes the database.
+   dbm.Close().OrDie()
+
+   // Opens a new database with the decimal real number comparator.
+   dbm = tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, tkrzw.ParseParams(
+     "truncate=true,key_comparator=RealNumber")).OrDie()
+
+   // Sets records with the key being a decimal string of a real number.
+   // e.g: "1.5" -> "hop"
+   dbm.Set("1.5", "hop", true).OrDie()
+   dbm.Set("256.5", "step", true).OrDie()
+   dbm.Set("32.5", "jump", true).OrDie()
+
+   // Gets records with the key being a decimal string of a real number.
+   fmt.Println(dbm.GetStrSimple("1.5", ""))
+   fmt.Println(dbm.GetStrSimple("256.5", ""))
+   fmt.Println(dbm.GetStrSimple("32.5", ""))
+
+   // Lists up all records, restoring keys into floating-point numbers.
+   iter = dbm.MakeIterator()
+   iter.First()
+   for {
+     key, value, status := iter.Get()
+     if !status.IsOK() {
+       break
+     }
+     fmt.Printf("%.3f: %s\n", tkrzw.ToFloat(key), value)
+     iter.Next()
+   }
+   iter.Destruct()
+
+   // Closes the database.
+   dbm.Close().OrDie()
+
+   // Opens a new database with the big-endian floating-point numbers comparator.
+   dbm = tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, tkrzw.ParseParams(
+     "truncate=true,key_comparator=FloatBigEndian")).OrDie()
+
+   // Sets records with the key being a big-endian binary of a floating-point number.
+   // e.g: "\x3F\xF8\x00\x00\x00\x00\x00\x00" -> "hop"
+   dbm.Set(tkrzw.SerializeFloat(1.5), "hop", true).OrDie()
+   dbm.Set(tkrzw.SerializeFloat(256.5), "step", true).OrDie()
+   dbm.Set(tkrzw.SerializeFloat(32.5), "jump", true).OrDie()
+
+   // Gets records with the key being a big-endian binary of a floating-point number.
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeFloat(1.5), ""))
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeFloat(256.5), ""))
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeFloat(32.5), ""))
+
+   // Lists up all records, restoring keys into floating-point numbers.
+   iter = dbm.MakeIterator()
+   iter.First()
+   for {
+     key, value, status := iter.Get()
+     if !status.IsOK() {
+       break
+     }
+     fmt.Printf("%.3f: %s\n", tkrzw.DeserializeFloat(key), value)
+     iter.Next()
+   }
+   iter.Destruct()
+
+   // Closes the database.
+   dbm.Close().OrDie()
  }
 
 The following code is a typical example of the asynchronous API.  The AsyncDBM class manages a thread pool and handles database operations in the background in parallel.  Each Method of AsyncDBM returns a Future object to monitor the result.
@@ -300,19 +449,19 @@ The following code is an example to use a secondary index, which is useful to or
    // Opens the index.
    index := tkrzw.NewIndex()
    index.Open("casket.tkt", true,
-     tkrzw.ParseParams("truncate=true,num_buckets=100"))
-   defer index.Close()
+     tkrzw.ParseParams("truncate=true,num_buckets=100")).OrDie()
+   defer func() { index.Close().OrDie() }()
 
    // Adds records to the index.
    // The key is a division name and the value is person name.
-   index.Add("general", "anne")
-   index.Add("general", "matthew")
-   index.Add("general", "marilla")
-   index.Add("sales", "gilbert")
+   index.Add("general", "anne").OrDie()
+   index.Add("general", "matthew").OrDie()
+   index.Add("general", "marilla").OrDie()
+   index.Add("sales", "gilbert").OrDie()
 
    // Anne moves to the sales division.
-   index.Remove("general", "anne")
-   index.Add("sales", "anne")
+   index.Remove("general", "anne").OrDie()
+   index.Add("sales", "anne").OrDie()
 
    // Prints all members for each division.
    divisions := [] string{"general", "sales"}
@@ -324,8 +473,9 @@ The following code is an example to use a secondary index, which is useful to or
      }
    }
 
-   // Prints every records by iterator.
+   // Prints every record by iterator.
    iter := index.MakeIterator()
+   defer iter.Destruct()
    iter.First()
    for {
      key, value, ok := iter.GetStr()

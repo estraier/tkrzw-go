@@ -25,7 +25,7 @@ type DBM struct {
 	dbm uintptr
 }
 
-// A function to process a record.
+// Function to process a record.
 type RecordProcessor func(key []byte, value []byte) interface{}
 
 // A pair of the key and the value of a record.
@@ -65,6 +65,17 @@ type KeyBytesProcPair struct {
 // @return The pointer to the created database object.
 func NewDBM() *DBM {
 	return &DBM{0}
+}
+
+// Releases the resource explicitly.
+//
+// The database is closed implicitly if it has not been closed.  As long as you close the database explicitly, you don't have to call this method.
+func (self *DBM) Destruct() {
+	if self.dbm == 0 {
+		return
+	}
+	dbm_iter_free(self.dbm)
+	self.dbm = 0
 }
 
 // Makes a string representing the database.
@@ -129,7 +140,7 @@ func (self *DBM) String() string {
 // - max_branches (int): The maximum number of branches each inner node can have.
 // - max_cached_pages (int): The maximum number of cached pages.
 // - page_update_mode (string): What to do when each page is updated: "PAGE_UPDATE_NONE" is to do no operation or "PAGE_UPDATE_WRITE" is to write immediately.
-// - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of the decimal integer numeric expressions, "HexadecimalKeyComparator" for the order of the hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of the decimal real number expressions.
+// - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of decimal integer numeric expressions, "HexadecimalKeyComparator" for the order of hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of decimal real number expressions, and "FloatBigEndianKeyComparator" for the order of binary float-number expressions.
 //
 // For SkipDBM, these optional parameters are supported.
 //

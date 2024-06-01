@@ -32,6 +32,17 @@ func NewIndex() *Index {
 	return &Index{0}
 }
 
+// Releases the resource explicitly.
+//
+// The index is closed implicitly if it has not been closed.  As long as you close the index explicitly, you don't have to call this method.
+func (self *Index) Destruct() {
+	if self.index == 0 {
+		return
+	}
+	index_close(self.index)
+	self.index = 0
+}
+
 // Makes a string representing the index.
 //
 // @return The string representing the index.
@@ -51,7 +62,7 @@ func (self *Index) String() string {
 // @param params Optional parameters.  If it is nil, it is ignored.
 // @return The result status.
 //
-// If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, and PairRealNumberKeyComparator.  Other options can be specified as with DBM::Open.
+// If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, PairRealNumberKeyComparator, and PairFloatBigEndianKeyComparator.  Other options can be specified as with DBM::Open.
 func (self *Index) Open(path string, writable bool, params map[string]string) *Status {
 	if self.index != 0 {
 		return NewStatus2(StatusPreconditionError, "opened index")
@@ -182,6 +193,16 @@ func (self *Index) Synchronize(hard bool) *Status {
 		return NewStatus2(StatusPreconditionError, "not opened index")
 	}
 	return index_synchronize(self.index, hard)
+}
+
+// Checks whether the index is open.
+//
+// @return True if the index is open, or false if not.
+func (self *Index) IsOpen() bool {
+	if self.index == 0 {
+		return false
+	}
+	return true
 }
 
 // Checks whether the index is writable.
