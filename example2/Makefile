@@ -5,11 +5,11 @@ RUNENV := LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib:$(HOME)/loc
 
 build :
 	$(RUNENV) $(GOCMD) get
-	$(RUNENV) $(GOCMD) build main.go
+	$(RUNENV) $(GOCMD) build example2.go
 
 run :
 	$(RUNENV) $(GOCMD) get
-	$(RUNENV) $(GOCMD) run main.go
+	$(RUNENV) $(GOCMD) run example2.go
 
 vet :
 	$(RUNENV) $(GOCMD) get
@@ -21,4 +21,4 @@ fmt :
 
 clean :
 	rm -rf casket* *.tkh *.tkt *.tks *~ hoge moge tako ika uni \
-	  main
+	  example2
