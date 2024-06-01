@@ -37,7 +37,7 @@ func main() {
 	index.Add("sales", "anne")
 
 	// Prints all members for each division.
-	divisions := [] string{"general", "sales"}
+	divisions := []string{"general", "sales"}
 	for _, division := range divisions {
 		fmt.Printf("%s\n", division)
 		members := index.GetValuesStr(division, 0)
