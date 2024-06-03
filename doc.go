@@ -261,6 +261,38 @@ The following code is examples to use a tree database which handles numeric keys
    // Closes the database.
    dbm.Close().OrDie()
 
+   // Opens a new database with the big-endian signed integers comparator.
+   dbm = tkrzw.NewDBM()
+   dbm.Open("casket.tkt", true, tkrzw.ParseParams(
+     "truncate=true,key_comparator=SignedBigEndian")).OrDie()
+
+   // Sets records with the key being a big-endian binary of a signed integer.
+   // e.g: "\x00\x00\x00\x00\x00\x00\x00\x31" -> "hop"
+   dbm.Set(tkrzw.SerializeInt(-1), "hop", true).OrDie()
+   dbm.Set(tkrzw.SerializeInt(-256), "step", true).OrDie()
+   dbm.Set(tkrzw.SerializeInt(-32), "jump", true).OrDie()
+
+   // Gets records with the key being a big-endian binary of a signed integer.
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeInt(-1), ""))
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeInt(-256), ""))
+   fmt.Println(dbm.GetStrSimple(tkrzw.SerializeInt(-32), ""))
+
+   // Lists up all records, restoring keys into signed integers.
+   iter = dbm.MakeIterator()
+   iter.First()
+   for {
+     key, value, status := iter.Get()
+     if !status.IsOK() {
+       break
+     }
+     fmt.Printf("%d: %s\n", tkrzw.DeserializeInt(key), value)
+     iter.Next()
+   }
+   iter.Destruct()
+
+   // Closes the database.
+   dbm.Close().OrDie()
+
    // Opens a new database with the big-endian floating-point numbers comparator.
    dbm = tkrzw.NewDBM()
    dbm.Open("casket.tkt", true, tkrzw.ParseParams(
